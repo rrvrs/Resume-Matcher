@@ -44,6 +44,7 @@ async def upload_resume(
 ):
     """
     Accepts a PDF or DOCX file, converts it to HTML/Markdown, and stores it in the database.
+    Now includes comprehensive validation to ensure data quality.
 
     Raises:
         HTTPException: If the file type is not supported or if the file is empty.
@@ -112,9 +113,10 @@ async def score_and_improve(
 ):
     """
     Scores and improves a resume against a job description.
+    Now uses centralized validation for production quality.
 
     Raises:
-        HTTPException: If the resume or job is not found.
+        HTTPException: If the resume or job is not found or not ready for processing.
     """
     request_id = getattr(request.state, "request_id", str(uuid4()))
     headers = {"X-Request-ID": request_id}
@@ -158,25 +160,25 @@ async def score_and_improve(
     except ResumeNotFoundError as e:
         logger.error(str(e))
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
         )
     except JobNotFoundError as e:
         logger.error(str(e))
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
         )
     except ResumeParsingError as e:
         logger.error(str(e))
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(e),
         )
     except JobParsingError as e:
         logger.error(str(e))
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(e),
         )
     except ResumeKeywordExtractionError as e:
@@ -210,6 +212,7 @@ async def get_resume(
 ):
     """
     Retrieves resume data from both resume_model and processed_resume model by resume_id.
+    Now includes processing status information.
 
     Args:
         resume_id: The ID of the resume to retrieve

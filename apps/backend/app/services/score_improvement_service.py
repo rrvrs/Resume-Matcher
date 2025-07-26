@@ -23,6 +23,7 @@ from .exceptions import (
     ResumeKeywordExtractionError,
     JobKeywordExtractionError,
 )
+from .validation_service import ValidationService
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,7 @@ logger = logging.getLogger(__name__)
 class ScoreImprovementService:
     """
     Service to handle scoring of resumes and jobs using embeddings.
+    Now uses centralized validation for production quality.
     Fetches Resume and Job data from the database, computes embeddings,
     and calculates cosine similarity scores. Uses LLM for iteratively improving
     the scoring process.
@@ -41,86 +43,19 @@ class ScoreImprovementService:
         self.md_agent_manager = AgentManager(strategy="md")
         self.json_agent_manager = AgentManager()
         self.embedding_manager = EmbeddingManager()
+        self.validation_service = ValidationService(db)
 
-    def _validate_resume_keywords(
-        self, processed_resume: ProcessedResume, resume_id: str
-    ) -> None:
+    async def _get_resume(self, resume_id: str) -> Tuple[Resume, ProcessedResume]:
         """
-        Validates that keyword extraction was successful for a resume.
-        Raises ResumeKeywordExtractionError if keywords are missing or empty.
+        Fetches and validates resume using centralized validation service.
         """
-        if not processed_resume.extracted_keywords:
-            raise ResumeKeywordExtractionError(resume_id=resume_id)
+        return await self.validation_service.validate_resume_completeness(resume_id)
 
-        try:
-            keywords_data = json.loads(processed_resume.extracted_keywords)
-            keywords = keywords_data.get("extracted_keywords", [])
-            if not keywords or len(keywords) == 0:
-                raise ResumeKeywordExtractionError(resume_id=resume_id)
-        except json.JSONDecodeError:
-            raise ResumeKeywordExtractionError(resume_id=resume_id)
-
-    def _validate_job_keywords(self, processed_job: ProcessedJob, job_id: str) -> None:
+    async def _get_job(self, job_id: str) -> Tuple[Job, ProcessedJob]:
         """
-        Validates that keyword extraction was successful for a job.
-        Raises JobKeywordExtractionError if keywords are missing or empty.
+        Fetches and validates job using centralized validation service.
         """
-        if not processed_job.extracted_keywords:
-            raise JobKeywordExtractionError(job_id=job_id)
-
-        try:
-            keywords_data = json.loads(processed_job.extracted_keywords)
-            keywords = keywords_data.get("extracted_keywords", [])
-            if not keywords or len(keywords) == 0:
-                raise JobKeywordExtractionError(job_id=job_id)
-        except json.JSONDecodeError:
-            raise JobKeywordExtractionError(job_id=job_id)
-
-    async def _get_resume(
-        self, resume_id: str
-    ) -> Tuple[Resume | None, ProcessedResume | None]:
-        """
-        Fetches the resume from the database.
-        """
-        query = select(Resume).where(Resume.resume_id == resume_id)
-        result = await self.db.execute(query)
-        resume = result.scalars().first()
-
-        if not resume:
-            raise ResumeNotFoundError(resume_id=resume_id)
-
-        query = select(ProcessedResume).where(ProcessedResume.resume_id == resume_id)
-        result = await self.db.execute(query)
-        processed_resume = result.scalars().first()
-
-        if not processed_resume:
-            raise ResumeParsingError(resume_id=resume_id)
-
-        self._validate_resume_keywords(processed_resume, resume_id)
-
-        return resume, processed_resume
-
-    async def _get_job(self, job_id: str) -> Tuple[Job | None, ProcessedJob | None]:
-        """
-        Fetches the job from the database.
-        """
-        query = select(Job).where(Job.job_id == job_id)
-        result = await self.db.execute(query)
-        job = result.scalars().first()
-
-        if not job:
-            raise JobNotFoundError(job_id=job_id)
-
-        query = select(ProcessedJob).where(ProcessedJob.job_id == job_id)
-        result = await self.db.execute(query)
-        processed_job = result.scalars().first()
-
-        if not processed_job:
-            raise JobParsingError(job_id=job_id)
-
-        self._validate_job_keywords(processed_job, job_id)
-
-        return job, processed_job
+        return await self.validation_service.validate_job_completeness(job_id)
 
     def calculate_cosine_similarity(
         self,
@@ -171,21 +106,20 @@ class ScoreImprovementService:
                 return improved, score
 
             logger.info(
-                f"Attempt {attempt} resulted in score: {score}, best score so far: {best_score}"
+                f"Attempt {attempt} did not improve score. Current: {score:.4f}, Best: {best_score:.4f}"
             )
 
         return best_resume, best_score
 
-    async def get_resume_for_previewer(self, updated_resume: str) -> Dict:
+    async def get_resume_for_previewer(self, updated_resume: str) -> Optional[Dict]:
         """
-        Returns the updated resume in a format suitable for the dashboard.
+        Get resume preview data for display.
         """
-        prompt_template = prompt_factory.get("structured_resume")
+        prompt_template = prompt_factory.get("resume_preview")
         prompt = prompt_template.format(
             json.dumps(json_schema_factory.get("resume_preview"), indent=2),
             updated_resume,
         )
-        logger.info(f"Structured Resume Prompt: {prompt}")
         raw_output = await self.json_agent_manager.run(prompt=prompt)
 
         try:
@@ -199,20 +133,22 @@ class ScoreImprovementService:
 
     async def run(self, resume_id: str, job_id: str) -> Dict:
         """
-        Main method to run the scoring and improving process and return dict.
+        Main method to run the scoring and improving process.
+        Uses centralized validation for production quality.
         """
-
+        # Get validated data
         resume, processed_resume = await self._get_resume(resume_id)
         job, processed_job = await self._get_job(job_id)
 
+        # Extract keywords safely (validation service already checked these)
+        job_keywords_data = json.loads(processed_job.extracted_keywords)
         extracted_job_keywords = ", ".join(
-            json.loads(processed_job.extracted_keywords).get("extracted_keywords", [])
+            job_keywords_data.get("extracted_keywords", [])
         )
 
+        resume_keywords_data = json.loads(processed_resume.extracted_keywords)
         extracted_resume_keywords = ", ".join(
-            json.loads(processed_resume.extracted_keywords).get(
-                "extracted_keywords", []
-            )
+            resume_keywords_data.get("extracted_keywords", [])
         )
 
         resume_embedding_task = asyncio.create_task(
@@ -253,31 +189,33 @@ class ScoreImprovementService:
         }
 
         gc.collect()
-
         return execution
 
     async def run_and_stream(self, resume_id: str, job_id: str) -> AsyncGenerator:
         """
-        Main method to run the scoring and improving process and return dict.
+        Streaming version with centralized validation.
         """
+        yield f"data: {json.dumps({'status': 'starting', 'message': 'Validating data completeness...'})}\n\n"
+        await asyncio.sleep(1)
 
-        yield f"data: {json.dumps({'status': 'starting', 'message': 'Analyzing resume and job description...'})}\n\n"
-        await asyncio.sleep(2)
-
-        resume, processed_resume = await self._get_resume(resume_id)
-        job, processed_job = await self._get_job(job_id)
+        try:
+            resume, processed_resume = await self._get_resume(resume_id)
+            job, processed_job = await self._get_job(job_id)
+        except Exception as e:
+            yield f"data: {json.dumps({'status': 'error', 'message': f'Validation failed: {str(e)}'})}\n\n"
+            return
 
         yield f"data: {json.dumps({'status': 'parsing', 'message': 'Parsing resume content...'})}\n\n"
         await asyncio.sleep(2)
 
+        job_keywords_data = json.loads(processed_job.extracted_keywords)
         extracted_job_keywords = ", ".join(
-            json.loads(processed_job.extracted_keywords).get("extracted_keywords", [])
+            job_keywords_data.get("extracted_keywords", [])
         )
 
+        resume_keywords_data = json.loads(processed_resume.extracted_keywords)
         extracted_resume_keywords = ", ".join(
-            json.loads(processed_resume.extracted_keywords).get(
-                "extracted_keywords", []
-            )
+            resume_keywords_data.get("extracted_keywords", [])
         )
 
         resume_embedding = await self.embedding_manager.embed(text=resume.content)
@@ -292,10 +230,8 @@ class ScoreImprovementService:
             extracted_job_keywords_embedding, resume_embedding
         )
 
-        yield f"data: {json.dumps({'status': 'scored', 'score': cosine_similarity_score})}\n\n"
-
-        yield f"data: {json.dumps({'status': 'improving', 'message': 'Generating improvement suggestions...'})}\n\n"
-        await asyncio.sleep(3)
+        yield f"data: {json.dumps({'status': 'improving', 'message': 'Improving resume content...'})}\n\n"
+        await asyncio.sleep(2)
 
         updated_resume, updated_score = await self.improve_score_with_llm(
             resume=resume.content,
@@ -306,16 +242,22 @@ class ScoreImprovementService:
             extracted_job_keywords_embedding=extracted_job_keywords_embedding,
         )
 
-        for i, suggestion in enumerate(updated_resume):
-            yield f"data: {json.dumps({'status': 'suggestion', 'index': i, 'text': suggestion})}\n\n"
-            await asyncio.sleep(0.2)
+        yield f"data: {json.dumps({'status': 'generating', 'message': 'Generating preview...'})}\n\n"
+        await asyncio.sleep(2)
 
-        final_result = {
+        resume_preview = await self.get_resume_for_previewer(
+            updated_resume=updated_resume
+        )
+
+        execution = {
             "resume_id": resume_id,
             "job_id": job_id,
             "original_score": cosine_similarity_score,
             "new_score": updated_score,
             "updated_resume": markdown.markdown(text=updated_resume),
+            "resume_preview": resume_preview,
         }
 
-        yield f"data: {json.dumps({'status': 'completed', 'result': final_result})}\n\n"
+        yield f"data: {json.dumps({'status': 'completed', 'data': execution})}\n\n"
+
+        gc.collect()

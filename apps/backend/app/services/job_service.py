@@ -10,9 +10,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.agent import AgentManager
 from app.prompt import prompt_factory
 from app.schemas.json import json_schema_factory
-from app.models import Job, Resume, ProcessedJob
+from app.models import Job, Resume, ProcessedJob, ProcessingStatus
 from app.schemas.pydantic import StructuredJobModel
-from .exceptions import JobNotFoundError
+from .exceptions import (
+    JobNotFoundError,
+    JobParsingError,
+    JobKeywordExtractionError,
+)
+from .validation_service import ValidationService
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +26,7 @@ class JobService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.json_agent_manager = AgentManager(model="gemma3:4b")
+        self.validation_service = ValidationService(db)
 
     async def create_and_store_job(self, job_data: dict) -> List[str]:
         """
@@ -64,51 +70,92 @@ class JobService:
         self, job_id, job_description_text: str
     ):
         """
-        extract and store structured job data in the database
+        Extract and store structured job data with proper status tracking.
         """
-        structured_job = await self._extract_structured_json(job_description_text)
-        if not structured_job:
-            logger.info("Structured job extraction failed.")
-            return None
-
+        # Create initial processing record
         processed_job = ProcessedJob(
             job_id=job_id,
-            job_title=structured_job.get("job_title"),
-            company_profile=json.dumps(structured_job.get("company_profile"))
-            if structured_job.get("company_profile")
-            else None,
-            location=json.dumps(structured_job.get("location"))
-            if structured_job.get("location")
-            else None,
-            date_posted=structured_job.get("date_posted"),
-            employment_type=structured_job.get("employment_type"),
-            job_summary=structured_job.get("job_summary"),
-            key_responsibilities=json.dumps(
-                {"key_responsibilities": structured_job.get("key_responsibilities", [])}
-            )
-            if structured_job.get("key_responsibilities")
-            else None,
-            qualifications=json.dumps(structured_job.get("qualifications", []))
-            if structured_job.get("qualifications")
-            else None,
-            compensation_and_benfits=json.dumps(
-                structured_job.get("compensation_and_benfits", [])
-            )
-            if structured_job.get("compensation_and_benfits")
-            else None,
-            application_info=json.dumps(structured_job.get("application_info", []))
-            if structured_job.get("application_info")
-            else None,
-            extracted_keywords=json.dumps(
-                {"extracted_keywords": structured_job.get("extracted_keywords", [])}
-            )
-            if structured_job.get("extracted_keywords")
-            else None,
+            job_title="",  # Temporary placeholder
+            job_summary="",  # Temporary placeholder
+            extracted_keywords={},  # Temporary empty data
+            processing_status=ProcessingStatus.PROCESSING
         )
-
+        
         self.db.add(processed_job)
         await self.db.flush()
-        await self.db.commit()
+        
+        try:
+            structured_job = await self._extract_structured_json(job_description_text)
+            if not structured_job:
+                logger.error("Structured job extraction failed.")
+                processed_job.processing_status = ProcessingStatus.FAILED
+                processed_job.processing_error = "Failed to extract structured data from job description"
+                await self.db.commit()
+                raise AssertionError(
+                    "Failed to extract structured data from job description. Please ensure the job description is clear and contains all necessary sections."
+                )
+
+            # Validate using centralized service
+            if not self.validation_service.validate_structured_data(structured_job, "job"):
+                processed_job.processing_status = ProcessingStatus.FAILED
+                processed_job.processing_error = "Job structure validation failed"
+                await self.db.commit()
+                raise AssertionError(
+                    "Failed to extract keywords from job description. Please ensure the job description contains relevant skills and requirements that can be identified."
+                )
+
+            # Update with actual data
+            processed_job.job_title = structured_job.get("job_title")
+            processed_job.company_profile = (
+                json.dumps(structured_job.get("company_profile"))
+                if structured_job.get("company_profile")
+                else None
+            )
+            processed_job.location = (
+                json.dumps(structured_job.get("location"))
+                if structured_job.get("location")
+                else None
+            )
+            processed_job.date_posted = structured_job.get("date_posted")
+            processed_job.employment_type = structured_job.get("employment_type")
+            processed_job.job_summary = structured_job.get("job_summary")
+            processed_job.key_responsibilities = (
+                json.dumps({"key_responsibilities": structured_job.get("key_responsibilities", [])})
+                if structured_job.get("key_responsibilities")
+                else None
+            )
+            processed_job.qualifications = (
+                json.dumps({"qualifications": structured_job.get("qualifications", [])})
+                if structured_job.get("qualifications")
+                else None
+            )
+            processed_job.compensation_and_benfits = (
+                json.dumps({"compensation_and_benfits": structured_job.get("compensation_and_benfits", [])})
+                if structured_job.get("compensation_and_benfits")
+                else None
+            )
+            processed_job.application_info = (
+                json.dumps({"application_info": structured_job.get("application_info", [])})
+                if structured_job.get("application_info")
+                else None
+            )
+            processed_job.extracted_keywords = json.dumps(
+                {"extracted_keywords": structured_job.get("extracted_keywords", [])}
+            )
+            processed_job.processing_status = ProcessingStatus.COMPLETED
+            processed_job.processing_error = None
+            
+            await self.db.commit()
+            
+        except AssertionError:
+            # Re-raise validation errors to propagate to the upload endpoint
+            raise
+        except Exception as e:
+            logger.error(f"Error storing structured job: {str(e)}")
+            processed_job.processing_status = ProcessingStatus.FAILED
+            processed_job.processing_error = f"Failed to store structured job data: {str(e)}"
+            await self.db.commit()
+            raise AssertionError(f"Failed to store structured job data: {str(e)}")
 
         return job_id
 
@@ -138,53 +185,72 @@ class JobService:
 
     async def get_job_with_processed_data(self, job_id: str) -> Optional[Dict]:
         """
-        Fetches both job and processed job data from the database and combines them.
-
+        Retrieves combined data from both job and processed_job models.
+        Uses validation service for consistency.
+        
         Args:
             job_id: The ID of the job to retrieve
 
         Returns:
             Combined data from both job and processed_job models
-
-        Raises:
-            JobNotFoundError: If the job is not found
         """
-        job_query = select(Job).where(Job.job_id == job_id)
-        job_result = await self.db.execute(job_query)
-        job = job_result.scalars().first()
-
-        if not job:
-            raise JobNotFoundError(job_id=job_id)
-
-        processed_query = select(ProcessedJob).where(ProcessedJob.job_id == job_id)
-        processed_result = await self.db.execute(processed_query)
-        processed_job = processed_result.scalars().first()
-
-        combined_data = {
-            "job_id": job.job_id,
-            "raw_job": {
-                "id": job.id,
-                "resume_id": job.resume_id,
-                "content": job.content,
-                "created_at": job.created_at.isoformat() if job.created_at else None,
-            },
-            "processed_job": None
-        }
-
-        if processed_job:
-            combined_data["processed_job"] = {
-                "job_title": processed_job.job_title,
-                "company_profile": json.loads(processed_job.company_profile) if processed_job.company_profile else None,
-                "location": json.loads(processed_job.location) if processed_job.location else None,
-                "date_posted": processed_job.date_posted,
-                "employment_type": processed_job.employment_type,
-                "job_summary": processed_job.job_summary,
-                "key_responsibilities": json.loads(processed_job.key_responsibilities).get("key_responsibilities", []) if processed_job.key_responsibilities else None,
-                "qualifications": json.loads(processed_job.qualifications).get("qualifications", []) if processed_job.qualifications else None,
-                "compensation_and_benfits": json.loads(processed_job.compensation_and_benfits).get("compensation_and_benfits", []) if processed_job.compensation_and_benfits else None,
-                "application_info": json.loads(processed_job.application_info).get("application_info", []) if processed_job.application_info else None,
-                "extracted_keywords": json.loads(processed_job.extracted_keywords).get("extracted_keywords", []) if processed_job.extracted_keywords else None,
-                "processed_at": processed_job.processed_at.isoformat() if processed_job.processed_at else None,
+        try:
+            job, processed_job = await self.validation_service.validate_job_completeness(job_id)
+            
+            combined_data = {
+                "job": {
+                    "job_id": job.job_id,
+                    "resume_id": job.resume_id,
+                    "content": job.content,
+                    "created_at": job.created_at.isoformat() if job.created_at else None,
+                },
+                "processed_job": None,
             }
 
-        return combined_data
+            if processed_job:
+                combined_data["processed_job"] = {
+                    "job_title": processed_job.job_title,
+                    "company_profile": json.loads(processed_job.company_profile)
+                    if processed_job.company_profile
+                    else None,
+                    "location": json.loads(processed_job.location)
+                    if processed_job.location
+                    else None,
+                    "date_posted": processed_job.date_posted,
+                    "employment_type": processed_job.employment_type,
+                    "job_summary": processed_job.job_summary,
+                    "key_responsibilities": json.loads(
+                        processed_job.key_responsibilities
+                    ).get("key_responsibilities", [])
+                    if processed_job.key_responsibilities
+                    else None,
+                    "qualifications": json.loads(processed_job.qualifications).get(
+                        "qualifications", []
+                    )
+                    if processed_job.qualifications
+                    else None,
+                    "compensation_and_benfits": json.loads(
+                        processed_job.compensation_and_benfits
+                    ).get("compensation_and_benfits", [])
+                    if processed_job.compensation_and_benfits
+                    else None,
+                    "application_info": json.loads(processed_job.application_info).get(
+                        "application_info", []
+                    )
+                    if processed_job.application_info
+                    else None,
+                    "extracted_keywords": json.loads(processed_job.extracted_keywords).get(
+                        "extracted_keywords", []
+                    )
+                    if processed_job.extracted_keywords
+                    else None,
+                    "processing_status": processed_job.processing_status.value,
+                    "processed_at": processed_job.processed_at.isoformat()
+                    if processed_job.processed_at
+                    else None,
+                }
+
+            return combined_data
+            
+        except (JobNotFoundError, JobParsingError, JobKeywordExtractionError):
+            return None

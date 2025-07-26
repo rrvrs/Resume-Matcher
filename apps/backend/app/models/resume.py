@@ -1,9 +1,17 @@
 from sqlalchemy.types import JSON
 from sqlalchemy.orm import relationship
-from sqlalchemy import Column, String, Integer, ForeignKey, Text, DateTime, text
+from sqlalchemy import Column, String, Integer, ForeignKey, Text, DateTime, text, Enum
+import enum
 
 from .base import Base
 from .association import job_resume_association
+
+
+class ProcessingStatus(enum.Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
 
 
 class ProcessedResume(Base):
@@ -22,7 +30,9 @@ class ProcessedResume(Base):
     research_work = Column(JSON, nullable=True)
     achievements = Column(JSON, nullable=True)
     education = Column(JSON, nullable=True)
-    extracted_keywords = Column(JSON, nullable=True)
+    extracted_keywords = Column(JSON, nullable=False)  # Changed to NOT NULL
+    processing_status = Column(Enum(ProcessingStatus), nullable=False, default=ProcessingStatus.PENDING)
+    processing_error = Column(Text, nullable=True)  # Store error details
     processed_at = Column(
         DateTime(timezone=True),
         server_default=text("CURRENT_TIMESTAMP"),

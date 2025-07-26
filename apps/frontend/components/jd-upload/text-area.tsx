@@ -2,7 +2,6 @@
 
 import React, { useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useResumePreview } from '@/components/common/resume_previewer_context';
 import { uploadJobDescriptions, improveResume } from '@/lib/api/resume';
@@ -79,24 +78,22 @@ export default function JobDescriptionUploadTextArea() {
 		<form onSubmit={handleUpload} className="p-4 mx-auto w-full max-w-xl">
 			{flash && (
 				<div
-					className={`p-3 mb-4 text-sm rounded-md ${flash.type === 'error'
-						? 'bg-red-50 border border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800/30 dark:text-red-300'
-						: 'bg-green-50 border border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800/30 dark:text-green-300'
+					className={`mb-4 p-3 rounded-md text-sm ${flash.type === 'error'
+							? 'bg-red-100 text-red-700 border border-red-300'
+							: 'bg-green-100 text-green-700 border border-green-300'
 						}`}
-					role="alert"
 				>
-					<p>{flash.message}</p>
+					{flash.message}
 				</div>
 			)}
-
-			<div className="mb-6 relative">
+			<div className="mb-4">
 				<label
 					htmlFor="jobDescription"
-					className="bg-zinc-950/80 text-white absolute start-1 top-0 z-10 block -translate-y-1/2 px-2 text-xs font-medium group-has-disabled:opacity-50"
+					className="block text-sm font-medium text-gray-200 mb-2"
 				>
-					Job Description <span className="text-red-500">*</span>
+					Job Description
 				</label>
-				<Textarea
+				<textarea
 					id="jobDescription"
 					rows={15}
 					value={text}
