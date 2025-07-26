@@ -1,0 +1,83 @@
+# Use Node.js 20 Alpine as base image
+FROM node:20-alpine AS base
+
+# Install common dependencies
+RUN apk add --no-cache libc6-compat wget
+
+# Set working directory
+WORKDIR /app
+
+# Development stage
+FROM base AS development
+
+# Copy package files
+COPY apps/frontend/package*.json ./
+
+# Install all dependencies (including dev dependencies)
+RUN npm ci
+
+# Copy source code
+COPY apps/frontend/ .
+
+# Set environment variables
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+RUN chown -R nextjs:nodejs /app
+
+# Expose port
+EXPOSE 3000
+
+# Default development command
+CMD ["npm", "run", "dev"]
+
+# Dependencies stage for production
+FROM base AS deps
+WORKDIR /app
+
+# Copy package files
+COPY apps/frontend/package*.json ./
+RUN npm ci --only=production
+
+# Builder stage for production
+FROM base AS builder
+WORKDIR /app
+COPY apps/frontend/ .
+COPY --from=deps /app/node_modules ./node_modules
+
+# Set environment variable for build
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Build the application
+RUN npm run build
+
+# Production stage
+FROM base AS production
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copy the built application
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+
+EXPOSE 3000
+
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
+
+CMD ["node", "server.js"] 

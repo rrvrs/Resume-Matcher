@@ -20,3 +20,11 @@ async def ping(db: AsyncSession = Depends(get_db_session)):
         logging.error("Database health check failed", exc_info=True)
         db_status = "unreachable"
     return {"message": "pong", "database": db_status}
+
+
+@health_check.get("/health", tags=["Health check"], status_code=status.HTTP_200_OK)
+async def health():
+    """
+    Simple health check endpoint for Docker health checks
+    """
+    return {"status": "healthy"}

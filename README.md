@@ -69,6 +69,22 @@ If you have any suggestions or feature requests, please feel free to open an iss
 
 ![Installation](assets/how_to_install_resumematcher.png)
 
+### 🐳 Docker Setup (Recommended)
+
+For the easiest setup, use our production-quality Docker configuration:
+
+```bash
+# Quick start with Docker
+./docker-setup.sh production
+
+# Or manually with docker-compose
+docker-compose up -d
+```
+
+Visit [DOCKER.md](DOCKER.md) for complete Docker setup instructions.
+
+### 🛠️ Manual Setup
+
 Follow the instructions in the [SETUP.md](SETUP.md) file to set up the project locally. The setup script will install all the necessary dependencies and configure your environment.
 
 The project is built using:
