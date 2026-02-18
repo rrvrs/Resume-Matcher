@@ -63,9 +63,9 @@ updateLanguageConfig(language: string) → LanguageConfig
 export const PROVIDER_INFO = {
   openai: { name: 'OpenAI', defaultModel: 'gpt-5-nano-2025-08-07', requiresKey: true },
   anthropic: { name: 'Anthropic', defaultModel: 'claude-haiku-4-5-20251001', requiresKey: true },
-  openrouter: { name: 'OpenRouter', defaultModel: 'deepseek/deepseek-v3.2', requiresKey: true },
+  openrouter: { name: 'OpenRouter', defaultModel: 'deepseek/deepseek-chat', requiresKey: true },
   gemini: { name: 'Google Gemini', defaultModel: 'gemini-3-flash-preview', requiresKey: true },
-  deepseek: { name: 'DeepSeek', defaultModel: 'deepseek-v3.2', requiresKey: true },
+  deepseek: { name: 'DeepSeek', defaultModel: 'deepseek-chat', requiresKey: true },
   ollama: { name: 'Ollama (Local)', defaultModel: 'gemma3:4b', requiresKey: false },
 };
 ```
