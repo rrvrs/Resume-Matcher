@@ -41,8 +41,7 @@ OPENROUTER_JSON_CAPABLE_MODELS = {
     "google/gemini-3-flash-preview",
     # DeepSeek models
     "deepseek/deepseek-chat",
-    "deepseek/deepseek-v3",
-    "deepseek/deepseek-v3.2",
+    "deepseek/deepseek-reasoner",
     # Mistral models
     "mistralai/mistral-large",
     "mistralai/mistral-medium",
