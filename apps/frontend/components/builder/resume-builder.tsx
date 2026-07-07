@@ -125,6 +125,7 @@ const ResumeBuilderContent = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [, setLoadingState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const [templateSettings, setTemplateSettings] = useState<TemplateSettings>(() => {
+    if (typeof window === 'undefined') return DEFAULT_TEMPLATE_SETTINGS;
     try {
       const saved = localStorage.getItem(SETTINGS_STORAGE_KEY);
       if (saved) {
