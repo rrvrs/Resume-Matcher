@@ -107,6 +107,20 @@
     "previewMode": "Modo Visualização",
     "createAndPreview": "Criar e Visualizar",
     "unsavedDraft": "Rascunho Não Salvo",
+    "autoSave": {
+      "saving": "Sincronizando...",
+      "saved": "Todas as alterações salvas",
+      "localDraft": "Rascunho salvo localmente",
+      "saveNow": "Salvar agora",
+      "retrySave": "Tentar salvar novamente",
+      "savedButton": "Salvo"
+    },
+    "draftRecovery": {
+      "title": "Restaurar rascunho local?",
+      "description": "Um rascunho local do navegador é diferente da cópia salva no servidor. Restaure-o para continuar editando ou use a cópia do servidor e descarte o rascunho local.",
+      "restoreDraft": "Restaurar rascunho",
+      "useServer": "Usar cópia do servidor"
+    },
     "personalInfo": "Informações Pessoais",
     "summary": "Resumo",
     "experience": "Experiência",
@@ -453,6 +467,7 @@
     "alerts": {
       "saveNotAvailable": "Salvar só está disponível ao editar um currículo existente.",
       "saveFailed": "Falha ao salvar currículo. Por favor, tente novamente.",
+      "autoSaveFailed": "Não foi possível sincronizar. O rascunho está seguro localmente.",
       "coverLetterSaveSuccess": "Carta de apresentação salva",
       "outreachSaveSuccess": "Mensagem de contato salva",
       "downloadSuccess": "Currículo baixado",

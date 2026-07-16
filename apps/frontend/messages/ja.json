@@ -107,6 +107,20 @@
     "previewMode": "プレビューモード",
     "createAndPreview": "作成＆プレビュー",
     "unsavedDraft": "未保存の下書き",
+    "autoSave": {
+      "saving": "同期中...",
+      "saved": "すべての変更を保存しました",
+      "localDraft": "下書きをローカルに保存しました",
+      "saveNow": "今すぐ保存",
+      "retrySave": "保存を再試行",
+      "savedButton": "保存済み"
+    },
+    "draftRecovery": {
+      "title": "ローカル下書きを復元しますか？",
+      "description": "ブラウザ内のローカル下書きがサーバーに保存された内容と異なります。復元して編集を続けるか、サーバー版を使用してローカル下書きを破棄できます。",
+      "restoreDraft": "下書きを復元",
+      "useServer": "サーバー版を使用"
+    },
     "personalInfo": "個人情報",
     "summary": "概要",
     "experience": "職歴",
@@ -453,6 +467,7 @@
     "alerts": {
       "saveNotAvailable": "既存の履歴書を編集中のみ保存できます。",
       "saveFailed": "履歴書の保存に失敗しました。もう一度お試しください。",
+      "autoSaveFailed": "同期できませんでした。下書きはローカルに安全に保存されています。",
       "coverLetterSaveSuccess": "カバーレターを保存しました",
       "outreachSaveSuccess": "連絡メールを保存しました",
       "downloadSuccess": "履歴書をダウンロードしました",

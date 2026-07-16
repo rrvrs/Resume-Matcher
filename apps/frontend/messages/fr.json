@@ -107,6 +107,20 @@
     "previewMode": "Mode aperçu",
     "createAndPreview": "Créer et prévisualiser",
     "unsavedDraft": "Brouillon non enregistré",
+    "autoSave": {
+      "saving": "Synchronisation...",
+      "saved": "Toutes les modifications sont enregistrées",
+      "localDraft": "Brouillon enregistré localement",
+      "saveNow": "Enregistrer maintenant",
+      "retrySave": "Réessayer",
+      "savedButton": "Enregistré"
+    },
+    "draftRecovery": {
+      "title": "Restaurer le brouillon local ?",
+      "description": "Un brouillon local du navigateur diffère de la copie enregistrée sur le serveur. Restaurez-le pour continuer l'édition, ou utilisez la copie du serveur et supprimez le brouillon local.",
+      "restoreDraft": "Restaurer le brouillon",
+      "useServer": "Utiliser la copie serveur"
+    },
     "personalInfo": "Informations personnelles",
     "summary": "Résumé",
     "experience": "Expérience",
@@ -449,6 +463,7 @@
     "alerts": {
       "saveNotAvailable": "L'enregistrement n'est disponible que lors de la modification d'un CV existant.",
       "saveFailed": "Impossible d'enregistrer le CV. Veuillez réessayer.",
+      "autoSaveFailed": "Impossible de synchroniser. Le brouillon est en sécurité localement.",
       "coverLetterSaveSuccess": "Lettre de motivation enregistrée",
       "outreachSaveSuccess": "Message de contact enregistré",
       "downloadSuccess": "CV téléchargé",

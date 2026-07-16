@@ -107,6 +107,20 @@
     "previewMode": "预览模式",
     "createAndPreview": "创建与预览",
     "unsavedDraft": "未保存草稿",
+    "autoSave": {
+      "saving": "同步中...",
+      "saved": "所有更改已保存",
+      "localDraft": "草稿已在本地保存",
+      "saveNow": "立即保存",
+      "retrySave": "重试保存",
+      "savedButton": "已保存"
+    },
+    "draftRecovery": {
+      "title": "恢复本地草稿？",
+      "description": "浏览器中的本地草稿与服务器已保存版本不同。你可以恢复本地草稿继续编辑，或使用服务器版本并丢弃本地草稿。",
+      "restoreDraft": "恢复草稿",
+      "useServer": "使用服务器版本"
+    },
     "personalInfo": "个人信息",
     "summary": "个人简介",
     "experience": "工作经历",
@@ -453,6 +467,7 @@
     "alerts": {
       "saveNotAvailable": "仅在编辑现有简历时可保存。",
       "saveFailed": "保存简历失败，请重试。",
+      "autoSaveFailed": "暂时无法同步，草稿已安全保存在本地。",
       "coverLetterSaveSuccess": "求职信已保存",
       "outreachSaveSuccess": "联系邮件已保存",
       "downloadSuccess": "简历已下载",
