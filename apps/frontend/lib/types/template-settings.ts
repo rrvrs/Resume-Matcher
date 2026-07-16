@@ -130,16 +130,16 @@ export const SECTION_HEADER_SCALE_MAP: Record<SpacingLevel, number> = {
 
 // Header font family mapping
 export const HEADER_FONT_MAP: Record<HeaderFontFamily, string> = {
-  serif: 'Georgia, var(--font-noto-sans-sc), ui-serif, Cambria, "Times New Roman", Times, serif',
+  serif: 'ui-serif, Georgia, Cambria, "Times New Roman", var(--font-noto-sans-sc), Times, serif',
   'sans-serif':
-    'var(--font-noto-sans-sc), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"',
+    'ui-sans-serif, system-ui, var(--font-noto-sans-sc), sans-serif, "Apple Color Emoji", "Segoe UI Emoji"',
   mono: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
 };
 
 export const BODY_FONT_MAP: Record<BodyFontFamily, string> = {
-  serif: 'Georgia, var(--font-noto-sans-sc), ui-serif, Cambria, "Times New Roman", Times, serif',
+  serif: 'ui-serif, Georgia, Cambria, "Times New Roman", var(--font-noto-sans-sc), Times, serif',
   'sans-serif':
-    'var(--font-noto-sans-sc), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"',
+    'ui-sans-serif, system-ui, var(--font-noto-sans-sc), sans-serif, "Apple Color Emoji", "Segoe UI Emoji"',
   mono: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
 };
 
