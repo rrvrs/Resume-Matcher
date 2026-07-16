@@ -39,7 +39,8 @@ RESUME_SCHEMA_EXAMPLE = """{
       "description": [
         "Led development of microservices architecture",
         "Improved system performance by 40%"
-      ]
+      ],
+      "descriptionStyles": ["bullet", "bullet"]
     }
   ],
   "education": [
@@ -60,7 +61,8 @@ RESUME_SCHEMA_EXAMPLE = """{
       "description": [
         "Built CLI tool with 1000+ GitHub stars",
         "Used by 50+ companies worldwide"
-      ]
+      ],
+      "descriptionStyles": ["bullet", "bullet"]
     }
   ],
   "additional": {
@@ -78,7 +80,8 @@ RESUME_SCHEMA_EXAMPLE = """{
           "title": "Paper Title",
           "subtitle": "Journal Name",
           "years": "Jun 2023",
-          "description": ["Brief description of the publication"]
+          "description": ["Brief description of the publication"],
+          "descriptionStyles": ["bullet"]
         }
       ]
     },
@@ -102,7 +105,8 @@ IMPROVE_SCHEMA_EXAMPLE = """{
       "description": [
         "Led development of microservices architecture",
         "Improved system performance by 40%"
-      ]
+      ],
+      "descriptionStyles": ["bullet", "bullet"]
     }
   ],
   "education": [
@@ -123,7 +127,8 @@ IMPROVE_SCHEMA_EXAMPLE = """{
       "description": [
         "Built CLI tool with 1000+ GitHub stars",
         "Used by 50+ companies worldwide"
-      ]
+      ],
+      "descriptionStyles": ["bullet", "bullet"]
     }
   ],
   "additional": {
@@ -141,7 +146,8 @@ IMPROVE_SCHEMA_EXAMPLE = """{
           "title": "Paper Title",
           "subtitle": "Journal Name",
           "years": "Jun 2023",
-          "description": ["Brief description of the publication"]
+          "description": ["Brief description of the publication"],
+          "descriptionStyles": ["bullet"]
         }
       ]
     },
@@ -167,6 +173,7 @@ Custom section types:
 Rules:
 - Use "" for missing text fields, [] for missing arrays, null for optional fields
 - Number IDs starting from 1
+- For workExperience, personalProjects, and custom itemList items, include descriptionStyles with one value for each description row. Use "bullet" for normal bullet rows and "plain" for rows that should render without a bullet marker (for example subheadings or standalone labels).
 - Format dates preserving the original precision. Keep months when present: "Jan 2020 - Dec 2023", "May 2021 - Present". Use "YYYY - YYYY" only when the source has no months.
 - Use snake_case for custom section keys (e.g., "volunteer_work", "publications")
 - Preserve the original section name as a descriptive key
@@ -244,6 +251,7 @@ Rules:
 - Do NOT introduce new tools, technologies, or certifications not already present
 - Do NOT add new bullet points or sections
 - Preserve original bullet count and ordering within each section
+- Preserve descriptionStyles arrays and keep them aligned one-to-one with description arrays
 - Keep proper nouns (names, company names, locations) unchanged
 - For customSections: preserve exact structure, item count, titles, subtitles, and years. If an item's description is an empty array [] in the original, keep it empty []. Do NOT generate descriptions for items that had none.
 - Copy the "years" field values EXACTLY as they appear in the original resume (including any month prefixes like "Jan 2020 - Present"). Do not shorten, reformat, or drop months.
@@ -274,6 +282,7 @@ Rules:
 - You may rephrase bullet points to include keyword phrasing
 - Do NOT introduce new skills, tools, or certifications not in the resume
 - Do NOT change role, industry, or seniority level
+- Preserve descriptionStyles arrays and keep them aligned one-to-one with description arrays
 - For customSections: preserve exact structure, item count, titles, subtitles, and years. If an item's description is an empty array [] in the original, keep it empty []. Do NOT generate descriptions for items that had none.
 - Copy the "years" field values EXACTLY as they appear in the original resume (including any month prefixes like "Jan 2020 - Present"). Do not shorten, reformat, or drop months.
 - If resume is non-technical, keep language non-technical while still aligning keywords
@@ -304,6 +313,7 @@ Rules:
 - Preserve existing action verbs. Do not invent quantifiable achievements not in the original.
 - Keep proper nouns (names, company names, locations) unchanged
 - Translate job titles, descriptions, and skills to {output_language}
+- Preserve descriptionStyles arrays and keep them aligned one-to-one with description arrays
 - For customSections: preserve exact structure, item count, titles, subtitles, and years. If an item's description is an empty array [] in the original, keep it empty []. Do NOT generate descriptions for items that had none.
 - Improve custom section content the same way as standard sections
 - Copy the "years" field values EXACTLY as they appear in the original resume (including any month prefixes like "Jan 2020 - Present"). Do not shorten, reformat, or drop months.

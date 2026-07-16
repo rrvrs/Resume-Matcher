@@ -151,7 +151,7 @@ export const ResumeClean: React.FC<ResumeCleanProps> = ({
               {workExperience.map((exp) => (
                 <div key={exp.id} className={baseStyles['resume-item']}>
                   {renderEntryHeader(exp.company, exp.title, exp.location, exp.years)}
-                  <DescriptionList items={exp.description} styles={exp.descriptionStyles} />
+                  {renderBullets(exp.description, exp.descriptionStyles)}
                 </div>
               ))}
             </div>

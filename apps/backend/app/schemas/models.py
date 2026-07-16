@@ -107,6 +107,25 @@ def _coerce_string_list(value: Any) -> list[str]:
     return [coerced] if coerced else []
 
 
+def _coerce_description_styles(value: Any) -> list[Literal["bullet", "plain"]]:
+    """Coerce description style values into supported row styles."""
+    if not isinstance(value, list):
+        return []
+
+    return ["plain" if entry == "plain" else "bullet" for entry in value]
+
+
+def _align_description_styles(
+    description: list[str],
+    description_styles: list[Literal["bullet", "plain"]],
+) -> list[Literal["bullet", "plain"]]:
+    """Keep descriptionStyles aligned with description rows."""
+    return [
+        description_styles[index] if index < len(description_styles) else "bullet"
+        for index, _ in enumerate(description)
+    ]
+
+
 # Section Type Enum for dynamic sections
 class SectionType(str, Enum):
     """Types of resume sections."""
@@ -147,6 +166,20 @@ class Experience(BaseModel):
     def _normalize_description(cls, value: Any) -> list[str]:
         return _coerce_string_list(value)
 
+    @field_validator("descriptionStyles", mode="before")
+    @classmethod
+    def _normalize_description_styles(
+        cls, value: Any
+    ) -> list[Literal["bullet", "plain"]]:
+        return _coerce_description_styles(value)
+
+    @model_validator(mode="after")
+    def _sync_description_styles(self) -> "Experience":
+        self.descriptionStyles = _align_description_styles(
+            self.description, self.descriptionStyles
+        )
+        return self
+
 
 class Education(BaseModel):
     """Education entry."""
@@ -179,6 +212,20 @@ class Project(BaseModel):
     @classmethod
     def _normalize_description(cls, value: Any) -> list[str]:
         return _coerce_string_list(value)
+
+    @field_validator("descriptionStyles", mode="before")
+    @classmethod
+    def _normalize_description_styles(
+        cls, value: Any
+    ) -> list[Literal["bullet", "plain"]]:
+        return _coerce_description_styles(value)
+
+    @model_validator(mode="after")
+    def _sync_description_styles(self) -> "Project":
+        self.descriptionStyles = _align_description_styles(
+            self.description, self.descriptionStyles
+        )
+        return self
 
 
 class AdditionalInfo(BaseModel):
@@ -229,6 +276,20 @@ class CustomSectionItem(BaseModel):
     @classmethod
     def _normalize_description(cls, value: Any) -> list[str]:
         return _coerce_string_list(value)
+
+    @field_validator("descriptionStyles", mode="before")
+    @classmethod
+    def _normalize_description_styles(
+        cls, value: Any
+    ) -> list[Literal["bullet", "plain"]]:
+        return _coerce_description_styles(value)
+
+    @model_validator(mode="after")
+    def _sync_description_styles(self) -> "CustomSectionItem":
+        self.descriptionStyles = _align_description_styles(
+            self.description, self.descriptionStyles
+        )
+        return self
 
 
 class CustomSection(BaseModel):

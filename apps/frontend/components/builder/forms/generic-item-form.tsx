@@ -19,6 +19,7 @@ const RichTextEditor = dynamic(
 import { AlignLeft, List, Plus, Trash2 } from 'lucide-react';
 import type { CustomSectionItem } from '@/components/dashboard/resume-component';
 import { useTranslations } from '@/lib/i18n';
+import { alignDescriptionStyles, toggleDescriptionStyle } from '@/lib/utils/description-styles';
 
 interface GenericItemFormProps {
   items: CustomSectionItem[];
@@ -133,9 +134,14 @@ export const GenericItemForm: React.FC<GenericItemFormProps> = ({
     onChange(
       items.map((item) => {
         if (item.id === id) {
-          const styles = [...(item.descriptionStyles || [])];
-          styles[index] = styles[index] === 'plain' ? 'bullet' : 'plain';
-          return { ...item, descriptionStyles: styles };
+          return {
+            ...item,
+            descriptionStyles: toggleDescriptionStyle(
+              item.description,
+              item.descriptionStyles,
+              index
+            ),
+          };
         }
         return item;
       })
@@ -148,7 +154,7 @@ export const GenericItemForm: React.FC<GenericItemFormProps> = ({
         if (item.id === id) {
           const newDesc = [...(item.description || [])];
           newDesc.splice(index, 1);
-          const newStyles = [...(item.descriptionStyles || [])];
+          const newStyles = alignDescriptionStyles(item.description, item.descriptionStyles);
           newStyles.splice(index, 1);
           return { ...item, description: newDesc, descriptionStyles: newStyles };
         }

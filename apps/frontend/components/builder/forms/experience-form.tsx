@@ -20,6 +20,7 @@ const RichTextEditor = dynamic(
 import { Experience } from '@/components/dashboard/resume-component';
 import { AlignLeft, List, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from '@/lib/i18n';
+import { alignDescriptionStyles, toggleDescriptionStyle } from '@/lib/utils/description-styles';
 import {
   DndContext,
   closestCenter,
@@ -132,9 +133,14 @@ export const ExperienceForm: React.FC<ExperienceFormProps> = ({ data, onChange }
     onChange(
       data.map((item) => {
         if (item.id === id) {
-          const styles = [...(item.descriptionStyles || [])];
-          styles[index] = styles[index] === 'plain' ? 'bullet' : 'plain';
-          return { ...item, descriptionStyles: styles };
+          return {
+            ...item,
+            descriptionStyles: toggleDescriptionStyle(
+              item.description,
+              item.descriptionStyles,
+              index
+            ),
+          };
         }
         return item;
       })
@@ -147,7 +153,7 @@ export const ExperienceForm: React.FC<ExperienceFormProps> = ({ data, onChange }
         if (item.id === id) {
           const newDesc = [...(item.description || [])];
           newDesc.splice(index, 1);
-          const newStyles = [...(item.descriptionStyles || [])];
+          const newStyles = alignDescriptionStyles(item.description, item.descriptionStyles);
           newStyles.splice(index, 1);
           return { ...item, description: newDesc, descriptionStyles: newStyles };
         }

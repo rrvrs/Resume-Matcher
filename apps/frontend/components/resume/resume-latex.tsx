@@ -146,7 +146,7 @@ export const ResumeLatex: React.FC<ResumeLatexProps> = ({
               {workExperience.map((exp) => (
                 <div key={exp.id} className={baseStyles['resume-item']}>
                   {renderEntryHeader(exp.company, exp.years, exp.title, exp.location)}
-                  <DescriptionList items={exp.description} styles={exp.descriptionStyles} />
+                  {renderBullets(exp.description, exp.descriptionStyles)}
                 </div>
               ))}
             </div>
