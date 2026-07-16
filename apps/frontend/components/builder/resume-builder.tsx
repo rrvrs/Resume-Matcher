@@ -181,6 +181,7 @@ const ResumeBuilderContent = () => {
   const [autoSaveError, setAutoSaveError] = useState<string | null>(null);
   const [lastAutoSavedAt, setLastAutoSavedAt] = useState<number | null>(null);
   const [pendingDraftRestore, setPendingDraftRestore] = useState<StoredResumeDraft | null>(null);
+  const [showLeaveWithLocalDraftDialog, setShowLeaveWithLocalDraftDialog] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [, setLoadingState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const [templateSettings, setTemplateSettings] =
@@ -703,7 +704,14 @@ const ResumeBuilderContent = () => {
     const didSave = await flushResumeChanges(true);
     if (didSave) {
       router.push('/dashboard');
+    } else {
+      setShowLeaveWithLocalDraftDialog(true);
     }
+  };
+
+  const handleLeaveWithLocalDraft = () => {
+    setShowLeaveWithLocalDraftDialog(false);
+    router.push('/dashboard');
   };
 
   const handleStartRegenerate = async () => {
@@ -1415,6 +1423,18 @@ const ResumeBuilderContent = () => {
         closeOnConfirm={false}
         onConfirm={handleRestoreLocalDraft}
         onCancel={handleKeepServerDraft}
+      />
+
+      {/* Leave With Local Draft Dialog */}
+      <ConfirmDialog
+        open={showLeaveWithLocalDraftDialog}
+        onOpenChange={setShowLeaveWithLocalDraftDialog}
+        title={t('builder.leaveWithLocalDraft.title')}
+        description={t('builder.leaveWithLocalDraft.description')}
+        confirmLabel={t('builder.leaveWithLocalDraft.leave')}
+        cancelLabel={t('builder.leaveWithLocalDraft.stay')}
+        variant="warning"
+        onConfirm={handleLeaveWithLocalDraft}
       />
 
       {/* Notification Dialog (replaces native alert()) */}

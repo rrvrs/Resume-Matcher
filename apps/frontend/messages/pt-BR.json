@@ -121,6 +121,12 @@
       "restoreDraft": "Restaurar rascunho",
       "useServer": "Usar cópia do servidor"
     },
+    "leaveWithLocalDraft": {
+      "title": "Sair sem sincronizar?",
+      "description": "As alterações mais recentes ainda não puderam ser sincronizadas com o servidor. Um rascunho local continua salvo neste navegador, mas pode não estar disponível em outro navegador ou dispositivo.",
+      "leave": "Ir para o painel",
+      "stay": "Continuar editando"
+    },
     "personalInfo": "Informações Pessoais",
     "summary": "Resumo",
     "experience": "Experiência",

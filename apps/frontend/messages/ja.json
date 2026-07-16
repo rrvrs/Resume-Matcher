@@ -121,6 +121,12 @@
       "restoreDraft": "下書きを復元",
       "useServer": "サーバー版を使用"
     },
+    "leaveWithLocalDraft": {
+      "title": "同期せずに移動しますか？",
+      "description": "最新の変更はまだサーバーに同期できていません。ローカル下書きはこのブラウザに保存されていますが、別のブラウザや端末では利用できない場合があります。",
+      "leave": "ダッシュボードへ移動",
+      "stay": "編集を続ける"
+    },
     "personalInfo": "個人情報",
     "summary": "概要",
     "experience": "職歴",

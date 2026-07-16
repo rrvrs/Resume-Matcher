@@ -121,6 +121,12 @@
       "restoreDraft": "Restaurar borrador",
       "useServer": "Usar copia del servidor"
     },
+    "leaveWithLocalDraft": {
+      "title": "¿Salir sin sincronizar?",
+      "description": "Los últimos cambios aún no pudieron sincronizarse con el servidor. El borrador local sigue guardado en este navegador, pero puede no estar disponible desde otro navegador o dispositivo.",
+      "leave": "Ir al panel",
+      "stay": "Seguir editando"
+    },
     "personalInfo": "Información Personal",
     "summary": "Resumen",
     "experience": "Experiencia",

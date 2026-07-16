@@ -121,6 +121,12 @@
       "restoreDraft": "Restaurer le brouillon",
       "useServer": "Utiliser la copie serveur"
     },
+    "leaveWithLocalDraft": {
+      "title": "Quitter sans synchroniser ?",
+      "description": "Les dernières modifications n'ont pas encore pu être synchronisées avec le serveur. Un brouillon local reste enregistré dans ce navigateur, mais il peut ne pas être disponible depuis un autre navigateur ou appareil.",
+      "leave": "Aller au tableau de bord",
+      "stay": "Continuer l'édition"
+    },
     "personalInfo": "Informations personnelles",
     "summary": "Résumé",
     "experience": "Expérience",

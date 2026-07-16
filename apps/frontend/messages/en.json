@@ -121,6 +121,12 @@
       "restoreDraft": "Restore Draft",
       "useServer": "Use Server Copy"
     },
+    "leaveWithLocalDraft": {
+      "title": "Leave Without Syncing?",
+      "description": "The latest edits could not be synced to the server yet. A local browser draft is still saved, but it may not be available from another browser or device.",
+      "leave": "Leave Dashboard",
+      "stay": "Keep Editing"
+    },
     "personalInfo": "Personal Information",
     "summary": "Summary",
     "experience": "Experience",
