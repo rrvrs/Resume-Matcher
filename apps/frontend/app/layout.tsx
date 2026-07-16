@@ -16,9 +16,9 @@ const geist = Geist({
 
 const notoSansSC = Noto_Sans_SC({
   variable: '--font-noto-sans-sc',
-  subsets: ['latin'],
-  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
+  weight: ['400', '500', '600', '700'],
   display: 'swap',
+  preload: false,
 });
 
 export const metadata: Metadata = {
