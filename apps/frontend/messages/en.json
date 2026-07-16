@@ -292,7 +292,8 @@
         "descriptionPoints": "Description Points"
       },
       "actions": {
-        "addPoint": "Add Point"
+        "addPoint": "Add Point",
+        "togglePointStyle": "Toggle bullet marker"
       },
       "placeholders": {
         "title": "Title",

@@ -18,7 +18,7 @@ const RichTextEditor = dynamic(
   }
 );
 import { Experience } from '@/components/dashboard/resume-component';
-import { Plus, Trash2 } from 'lucide-react';
+import { AlignLeft, List, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from '@/lib/i18n';
 import {
   DndContext,
@@ -80,6 +80,7 @@ export const ExperienceForm: React.FC<ExperienceFormProps> = ({ data, onChange }
         location: '',
         years: '',
         description: [''],
+        descriptionStyles: ['bullet'],
       },
     ]);
   };
@@ -116,7 +117,24 @@ export const ExperienceForm: React.FC<ExperienceFormProps> = ({ data, onChange }
     onChange(
       data.map((item) => {
         if (item.id === id) {
-          return { ...item, description: [...(item.description || []), ''] };
+          return {
+            ...item,
+            description: [...(item.description || []), ''],
+            descriptionStyles: [...(item.descriptionStyles || []), 'bullet'],
+          };
+        }
+        return item;
+      })
+    );
+  };
+
+  const handleToggleDescriptionStyle = (id: number, index: number) => {
+    onChange(
+      data.map((item) => {
+        if (item.id === id) {
+          const styles = [...(item.descriptionStyles || [])];
+          styles[index] = styles[index] === 'plain' ? 'bullet' : 'plain';
+          return { ...item, descriptionStyles: styles };
         }
         return item;
       })
@@ -129,7 +147,9 @@ export const ExperienceForm: React.FC<ExperienceFormProps> = ({ data, onChange }
         if (item.id === id) {
           const newDesc = [...(item.description || [])];
           newDesc.splice(index, 1);
-          return { ...item, description: newDesc };
+          const newStyles = [...(item.descriptionStyles || [])];
+          newStyles.splice(index, 1);
+          return { ...item, description: newDesc, descriptionStyles: newStyles };
         }
         return item;
       })
@@ -256,6 +276,20 @@ export const ExperienceForm: React.FC<ExperienceFormProps> = ({ data, onChange }
                               minHeight="60px"
                             />
                           </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleToggleDescriptionStyle(item.id, idx)}
+                            className="h-[60px] w-8 text-muted-foreground hover:text-blue-700 self-end"
+                            aria-label={t('builder.genericItemForm.actions.togglePointStyle')}
+                            title={t('builder.genericItemForm.actions.togglePointStyle')}
+                          >
+                            {item.descriptionStyles?.[idx] === 'plain' ? (
+                              <AlignLeft className="w-3 h-3" />
+                            ) : (
+                              <List className="w-3 h-3" />
+                            )}
+                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"

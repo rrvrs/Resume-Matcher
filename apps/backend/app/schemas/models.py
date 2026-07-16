@@ -140,6 +140,7 @@ class Experience(BaseModel):
     location: str | None = None
     years: str = ""
     description: list[str] = Field(default_factory=list)
+    descriptionStyles: list[Literal["bullet", "plain"]] = Field(default_factory=list)
 
     @field_validator("description", mode="before")
     @classmethod
@@ -172,6 +173,7 @@ class Project(BaseModel):
     github: str | None = None
     website: str | None = None
     description: list[str] = Field(default_factory=list)
+    descriptionStyles: list[Literal["bullet", "plain"]] = Field(default_factory=list)
 
     @field_validator("description", mode="before")
     @classmethod
@@ -221,6 +223,7 @@ class CustomSectionItem(BaseModel):
     location: str | None = None
     years: str = ""
     description: list[str] = Field(default_factory=list)
+    descriptionStyles: list[Literal["bullet", "plain"]] = Field(default_factory=list)
 
     @field_validator("description", mode="before")
     @classmethod

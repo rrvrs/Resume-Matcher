@@ -292,7 +292,8 @@
         "descriptionPoints": "Puntos de descripción"
       },
       "actions": {
-        "addPoint": "Agregar punto"
+        "addPoint": "Agregar punto",
+        "togglePointStyle": "Alternar viñeta"
       },
       "placeholders": {
         "title": "Título",
