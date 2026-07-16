@@ -59,12 +59,29 @@ describe('resume draft storage helpers', () => {
   it('rejects valid JSON that does not look like resume data', () => {
     expect(parseResumeDraft('"not a resume"', 'abc-123')).toBeNull();
     expect(parseResumeDraft(JSON.stringify({ data: 42, updatedAt: 1 }), 'abc-123')).toBeNull();
+    expect(
+      parseResumeDraft(
+        JSON.stringify({
+          ...baseResume,
+          workExperience: {},
+        }),
+        'abc-123'
+      )
+    ).toBeNull();
   });
 
   it('rejects an envelope for a different resume id', () => {
     const otherResumeDraft = buildResumeDraft('other-resume', baseResume, 1770000000000);
 
     expect(parseResumeDraft(JSON.stringify(otherResumeDraft), 'abc-123')).toBeNull();
+  });
+
+  it('can reject legacy plain drafts when they cannot be safely scoped', () => {
+    expect(
+      parseResumeDraft(JSON.stringify(baseResume), 'abc-123', 1770000000100, {
+        allowLegacyPlainData: false,
+      })
+    ).toBeNull();
   });
 
   it('only prompts restore when the draft differs from the server copy', () => {

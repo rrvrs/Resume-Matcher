@@ -10,6 +10,10 @@ export interface ResumeDraftEnvelope {
   data: ResumeData;
 }
 
+interface ParseResumeDraftOptions {
+  allowLegacyPlainData?: boolean;
+}
+
 export function getResumeDraftStorageKey(resumeId: string | null | undefined): string {
   return `${RESUME_DRAFT_STORAGE_PREFIX}${resumeId || NEW_RESUME_DRAFT_ID}`;
 }
@@ -41,9 +45,9 @@ function isResumeDataShape(value: unknown): value is ResumeData {
 
   return (
     isObjectRecord(value.personalInfo) &&
-    'workExperience' in value &&
-    'education' in value &&
-    'personalProjects' in value &&
+    Array.isArray(value.workExperience) &&
+    Array.isArray(value.education) &&
+    Array.isArray(value.personalProjects) &&
     isObjectRecord(value.additional)
   );
 }
@@ -64,7 +68,8 @@ function isResumeDraftEnvelope(value: unknown): value is ResumeDraftEnvelope {
 export function parseResumeDraft(
   rawDraft: string | null,
   resumeId: string | null | undefined,
-  fallbackUpdatedAt = Date.now()
+  fallbackUpdatedAt = Date.now(),
+  options: ParseResumeDraftOptions = {}
 ): ResumeDraftEnvelope | null {
   if (!rawDraft) return null;
 
@@ -78,7 +83,7 @@ export function parseResumeDraft(
       return parsed;
     }
 
-    if (!isResumeDataShape(parsed)) {
+    if (options.allowLegacyPlainData === false || !isResumeDataShape(parsed)) {
       return null;
     }
 

@@ -7,7 +7,7 @@ import type {
 } from '@/components/dashboard/resume-component';
 
 type DescribedItem = {
-  description?: string[];
+  description?: unknown;
 };
 
 const isMeaningfulText = (value: unknown): value is string => {
@@ -16,11 +16,12 @@ const isMeaningfulText = (value: unknown): value is string => {
 
 const normalizeStringList = (items?: string[]): string[] | undefined => {
   if (!items) return items;
-  return items.map((item) => item.trim()).filter(Boolean);
+  if (!Array.isArray(items)) return [];
+  return items.filter(isMeaningfulText).map((item) => item.trim());
 };
 
 const normalizeDescriptionFields = <T extends DescribedItem>(item: T): T => {
-  const descriptions = item.description || [];
+  const descriptions = Array.isArray(item.description) ? item.description : [];
   const nextDescriptions: string[] = [];
 
   descriptions.forEach((description) => {

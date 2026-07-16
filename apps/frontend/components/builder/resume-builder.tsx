@@ -122,7 +122,9 @@ const readStoredResumeDraft = (resumeId: string | null): StoredResumeDraft | nul
   }
 
   const legacyDraft = withStorageKey(
-    parseResumeDraft(localStorage.getItem(LEGACY_RESUME_DRAFT_STORAGE_KEY), resumeId),
+    parseResumeDraft(localStorage.getItem(LEGACY_RESUME_DRAFT_STORAGE_KEY), resumeId, Date.now(), {
+      allowLegacyPlainData: !resumeId,
+    }),
     LEGACY_RESUME_DRAFT_STORAGE_KEY
   );
 
@@ -621,16 +623,22 @@ const ResumeBuilderContent = () => {
 
       try {
         setIsSaving(true);
+        const versionAtFlush = editVersionRef.current;
         const editorSnapshot = resumeData;
         const { canonicalPayload } = await queueResumeSave(editorSnapshot);
         setLastSavedData(canonicalPayload);
-        setHasUnsavedChanges(false);
-        editVersionRef.current = 0;
-        unsyncedSinceRef.current = null;
         setAutoSaveError(null);
-        setLastAutoSavedAt(Date.now());
-        clearStoredResumeDraft(resumeId);
-        return true;
+
+        if (editVersionRef.current === versionAtFlush) {
+          setHasUnsavedChanges(false);
+          editVersionRef.current = 0;
+          unsyncedSinceRef.current = null;
+          setLastAutoSavedAt(Date.now());
+          clearStoredResumeDraft(resumeId);
+          return true;
+        }
+
+        return false;
       } catch (error) {
         console.error('Failed to save resume:', error);
         setAutoSaveError(t('builder.alerts.autoSaveFailed'));
@@ -966,6 +974,7 @@ const ResumeBuilderContent = () => {
     green: 'text-green-700 bg-green-50 border-green-200',
     red: 'text-red-700 bg-red-50 border-red-200',
   };
+  const ResumeSaveStatusIcon = resumeSaveStatus?.tone === 'green' ? Check : AlertTriangle;
 
   return (
     <div className="h-screen w-full bg-background flex justify-center items-center p-4 md:p-8">
@@ -992,7 +1001,7 @@ const ResumeBuilderContent = () => {
                   <span
                     className={`flex items-center gap-1 text-xs font-mono px-2 py-1 border ${resumeSaveStatusStyles[resumeSaveStatus.tone]}`}
                   >
-                    <AlertTriangle className="w-3 h-3" />
+                    <ResumeSaveStatusIcon className="w-3 h-3" />
                     {resumeSaveStatus.label}
                   </span>
                 )}

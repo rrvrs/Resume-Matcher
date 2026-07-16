@@ -82,4 +82,29 @@ describe('resume normalization', () => {
       'Accepted at a systems workshop',
     ]);
   });
+
+  it('ignores malformed persisted list and description values during normalization', () => {
+    const malformedState = {
+      ...baseResume,
+      workExperience: [
+        {
+          id: 1,
+          title: 'Engineer',
+          company: 'Analytical Engines Inc',
+          years: '2024 - Present',
+          description: 'not-an-array',
+        },
+      ],
+      additional: {
+        technicalSkills: ['TypeScript', null, '  '],
+        languages: 'not-an-array',
+      },
+    } as unknown as ResumeData;
+
+    const normalized = normalizeResumeForSave(malformedState);
+
+    expect(normalized.workExperience?.[0].description).toEqual([]);
+    expect(normalized.additional?.technicalSkills).toEqual(['TypeScript']);
+    expect(normalized.additional?.languages).toEqual([]);
+  });
 });
