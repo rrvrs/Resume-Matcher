@@ -1184,8 +1184,11 @@ async def complete_json(
             retry_temp = _get_retry_temperature(model_name, attempt)
             if retry_temp is not None:
                 kwargs["temperature"] = retry_temp
-            if config.reasoning_effort:
-                kwargs["reasoning_effort"] = config.reasoning_effort
+            reasoning_effort = config.reasoning_effort
+            if attempt > 0 and reasoning_effort in ("low", "medium", "high"):
+                reasoning_effort = "minimal"
+            if reasoning_effort:
+                kwargs["reasoning_effort"] = reasoning_effort
 
             # JSON-012: Fallback to prompt-only JSON mode after JSON-mode failure.
             # LiteLLM registry may report support for models that the upstream
