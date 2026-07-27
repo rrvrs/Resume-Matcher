@@ -63,13 +63,20 @@ class LLMConfig(BaseModel):
     reasoning_effort: Literal["minimal", "low", "medium", "high"] | None = None
 
 
-def _is_azure_openai_foundry_endpoint(api_base: str | None) -> bool:
+def _is_azure_openai_foundry_endpoint(api_base: str | None, model: str | None = None) -> bool:
     """Return True for Azure AI Foundry endpoints exposing Azure OpenAI APIs."""
     if not api_base:
         return False
     parsed = urlsplit(api_base.strip())
     host = parsed.hostname or ""
-    return host.endswith(".services.ai.azure.com") and "/openai" in parsed.path
+    path = parsed.path.rstrip("/")
+    if not host.endswith(".services.ai.azure.com"):
+        return False
+    if path == "/models" or path.startswith("/models/"):
+        return False
+    if not path:
+        return model is not None and _is_azure_foundry_gpt5_model(model)
+    return path == "/openai" or path.startswith("/openai/")
 
 
 def _is_azure_foundry_gpt5_model(model: str) -> bool:
@@ -90,7 +97,8 @@ def _azure_foundry_api_version(config: LLMConfig) -> str | None:
     if config.provider != "azure_foundry" or not config.api_base:
         return None
     parsed = urlsplit(config.api_base.strip())
-    if "/openai/v1" in parsed.path:
+    path = parsed.path.rstrip("/")
+    if "/openai/v1" in path or (not path and _is_azure_foundry_gpt5_model(config.model)):
         return "v1"
     return None
 
@@ -468,7 +476,7 @@ def get_model_name(config: LLMConfig) -> str:
     prefix = provider_prefixes.get(config.provider, "")
 
     if config.provider == "azure_foundry" and _is_azure_openai_foundry_endpoint(
-        config.api_base
+        config.api_base, config.model
     ):
         if config.model.startswith(("azure/", "azure_ai/")):
             return config.model

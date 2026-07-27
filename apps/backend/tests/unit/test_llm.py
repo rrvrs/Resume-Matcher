@@ -7,6 +7,7 @@ import pytest
 from app.llm import (
     LLMConfig,
     _appears_truncated,
+    _azure_foundry_api_version,
     _get_retry_temperature,
     _normalize_api_base,
     _supports_temperature,
@@ -54,6 +55,29 @@ class TestProviderConfiguration:
         )
 
         assert get_model_name(config) == "azure_ai/command-r-plus"
+
+    def test_azure_foundry_service_root_routes_gpt5_via_azure(self):
+        """Foundry service-root GPT deployments use Azure GPT-5 routing."""
+        config = LLMConfig(
+            provider="azure_foundry",
+            model="gpt-5.4-mini",
+            api_key="foundry-key",
+            api_base="https://example.services.ai.azure.com",
+        )
+
+        assert get_model_name(config) == "azure/gpt5_series/gpt-5.4-mini"
+        assert _azure_foundry_api_version(config) == "v1"
+
+    def test_azure_foundry_service_root_keeps_non_gpt_on_azure_ai(self):
+        """Non-GPT Foundry service-root models keep Azure AI Inference routing."""
+        config = LLMConfig(
+            provider="azure_foundry",
+            model="mistral-large-latest",
+            api_key="foundry-key",
+            api_base="https://example.services.ai.azure.com",
+        )
+
+        assert get_model_name(config) == "azure_ai/mistral-large-latest"
 
     def test_azure_foundry_openai_endpoint_routes_gpt5_via_azure(self):
         """Foundry Azure OpenAI endpoints use Azure GPT-5 routing."""

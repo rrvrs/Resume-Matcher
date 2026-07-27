@@ -385,7 +385,9 @@ export default function SettingsPage() {
     setProvider(newProvider);
     setModel(PROVIDER_INFO[newProvider].defaultModel);
 
-    if (newProvider === 'ollama' && !apiBase.trim()) {
+    if (newProvider === 'azure_foundry' && provider !== 'azure_foundry') {
+      setApiBase('');
+    } else if (newProvider === 'ollama' && !apiBase.trim()) {
       setApiBase('http://localhost:11434');
     }
     if (newProvider === 'openai_compatible' && !apiBase.trim()) {
@@ -413,7 +415,7 @@ export default function SettingsPage() {
         return;
       }
       if (requiresApiBase && !apiBase.trim()) {
-        setError(`${providerInfo.name} requires a Base URL.`);
+        setError(t('settings.errors.baseUrlRequired', { provider: providerInfo.name }));
         setStatus('error');
         return;
       }
@@ -468,7 +470,7 @@ export default function SettingsPage() {
           healthy: false,
           provider,
           model,
-          error: `${providerInfo.name} requires a Base URL.`,
+          error: t('settings.errors.baseUrlRequired', { provider: providerInfo.name }),
         });
         setStatus('idle');
         return;

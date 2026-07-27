@@ -732,6 +732,7 @@
     "errors": {
       "unableToConnectBackend": "Impossible d'atteindre le serveur. Assurez-vous qu'il est en cours d'exécution.",
       "apiKeyRequired": "La clé API est requise pour le fournisseur sélectionné.",
+      "baseUrlRequired": "{provider} nécessite une URL de base.",
       "unknownProvider": "Fournisseur inconnu retourné par le backend : {provider}",
       "unableToSaveConfiguration": "Impossible d'enregistrer la configuration",
       "failedToClearApiKeys": "Impossible d'effacer les clés API. Veuillez réessayer.",
