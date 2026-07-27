@@ -4,6 +4,7 @@ import { apiFetch } from './client';
 export type LLMProvider =
   | 'openai'
   | 'openai_compatible'
+  | 'azure_foundry'
   | 'anthropic'
   | 'openrouter'
   | 'gemini'
@@ -138,7 +139,15 @@ export async function fetchSystemStatus(): Promise<SystemStatus> {
 // Provider display names and default models
 export const PROVIDER_INFO: Record<
   LLMProvider,
-  { name: string; defaultModel: string; requiresKey: boolean }
+  {
+    name: string;
+    defaultModel: string;
+    requiresKey: boolean;
+    requiresBaseUrl?: boolean;
+    baseUrlLabel?: string;
+    baseUrlPlaceholder?: string;
+    baseUrlDescription?: string;
+  }
 > = {
   openai: { name: 'OpenAI', defaultModel: 'gpt-5-nano-2025-08-07', requiresKey: true },
   // OpenAI-compatible: llama.cpp, vLLM, LM Studio, and other servers that expose
@@ -148,6 +157,16 @@ export const PROVIDER_INFO: Record<
     name: 'OpenAI-Compatible (Local)',
     defaultModel: 'custom-model',
     requiresKey: false,
+  },
+  azure_foundry: {
+    name: 'Azure AI Foundry',
+    defaultModel: 'mistral-large-latest',
+    requiresKey: true,
+    requiresBaseUrl: true,
+    baseUrlLabel: 'Azure AI Foundry endpoint',
+    baseUrlPlaceholder: 'https://<resource>.services.ai.azure.com/openai/v1/responses',
+    baseUrlDescription:
+      'Paste the endpoint from Foundry. GPT deployments can use the service root or /openai/v1/responses; Azure AI Inference models can use the /models endpoint.',
   },
   anthropic: { name: 'Anthropic', defaultModel: 'claude-haiku-4-5-20251001', requiresKey: true },
   openrouter: {
@@ -373,6 +392,7 @@ export async function updateFeaturePrompts(update: FeaturePromptsUpdate): Promis
 // API Key Management types
 export type ApiKeyProvider =
   | 'openai'
+  | 'azure_foundry'
   | 'anthropic'
   | 'google'
   | 'openrouter'
@@ -401,6 +421,7 @@ export interface ApiKeyStatusResponse {
 
 export interface ApiKeysUpdateRequest {
   openai?: string;
+  azure_foundry?: string;
   anthropic?: string;
   google?: string;
   openrouter?: string;
@@ -419,6 +440,7 @@ export interface ApiKeysUpdateResponse {
 export const API_KEY_PROVIDER_INFO: Record<ApiKeyProvider, { name: string; description: string }> =
   {
     openai: { name: 'OpenAI', description: 'GPT-4, GPT-4o, etc.' },
+    azure_foundry: { name: 'Azure AI Foundry', description: 'Azure AI Inference models' },
     anthropic: { name: 'Anthropic', description: 'Claude 3.5, Claude 4, etc.' },
     google: { name: 'Google', description: 'Gemini 1.5, Gemini 2, etc.' },
     openrouter: { name: 'OpenRouter', description: 'Access multiple providers' },

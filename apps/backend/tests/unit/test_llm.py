@@ -4,7 +4,72 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.llm import _appears_truncated, _get_retry_temperature, _supports_temperature
+from app.llm import (
+    LLMConfig,
+    _appears_truncated,
+    _get_retry_temperature,
+    _normalize_api_base,
+    _supports_temperature,
+    get_model_name,
+    resolve_api_key,
+)
+
+
+# ---------------------------------------------------------------------------
+# Provider configuration helpers
+# ---------------------------------------------------------------------------
+
+
+class TestProviderConfiguration:
+    """Tests for provider-specific model and key mapping."""
+
+    def test_azure_foundry_model_uses_litellm_azure_ai_prefix(self):
+        """Azure AI Foundry routes through LiteLLM's azure_ai provider."""
+        config = LLMConfig(
+            provider="azure_foundry",
+            model="mistral-large-latest",
+            api_key="foundry-key",
+            api_base="https://example.services.ai.azure.com/models",
+        )
+
+        assert get_model_name(config) == "azure_ai/mistral-large-latest"
+
+    def test_azure_foundry_model_preserves_existing_prefix(self):
+        """Already-prefixed Azure AI models are not double-prefixed."""
+        config = LLMConfig(
+            provider="azure_foundry",
+            model="azure_ai/command-r-plus",
+            api_key="foundry-key",
+        )
+
+        assert get_model_name(config) == "azure_ai/command-r-plus"
+
+    def test_azure_foundry_openai_endpoint_routes_gpt5_via_azure(self):
+        """Foundry Azure OpenAI endpoints use Azure GPT-5 routing."""
+        config = LLMConfig(
+            provider="azure_foundry",
+            model="gpt-5.4-mini",
+            api_key="foundry-key",
+            api_base="https://example.services.ai.azure.com/openai/v1/responses",
+        )
+
+        assert get_model_name(config) == "azure/gpt5_series/gpt-5.4-mini"
+
+    def test_azure_foundry_openai_endpoint_normalizes_to_resource_root(self):
+        """LiteLLM appends /openai/v1 itself for Azure v1 API calls."""
+        assert (
+            _normalize_api_base(
+                "azure_foundry",
+                "https://example.services.ai.azure.com/openai/v1/responses",
+            )
+            == "https://example.services.ai.azure.com"
+        )
+
+    def test_azure_foundry_key_resolves_from_provider_store(self):
+        """Azure AI Foundry uses its own encrypted key-store slot."""
+        stored = {"api_keys": {"azure_foundry": "foundry-key"}}
+
+        assert resolve_api_key(stored, "azure_foundry") == "foundry-key"
 
 
 # ---------------------------------------------------------------------------

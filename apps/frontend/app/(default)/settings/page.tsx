@@ -70,6 +70,7 @@ type Status = 'idle' | 'loading' | 'saving' | 'saved' | 'error' | 'testing';
 const PROVIDERS: LLMProvider[] = [
   'openai',
   'openai_compatible',
+  'azure_foundry',
   'anthropic',
   'openrouter',
   'gemini',
@@ -411,6 +412,11 @@ export default function SettingsPage() {
         setStatus('error');
         return;
       }
+      if (requiresApiBase && !apiBase.trim()) {
+        setError(`${providerInfo.name} requires a Base URL.`);
+        setStatus('error');
+        return;
+      }
 
       const trimmedKey = apiKey.trim();
 
@@ -457,6 +463,17 @@ export default function SettingsPage() {
     setHealthCheck(null);
 
     try {
+      if (requiresApiBase && !apiBase.trim()) {
+        setHealthCheck({
+          healthy: false,
+          provider,
+          model,
+          error: `${providerInfo.name} requires a Base URL.`,
+        });
+        setStatus('idle');
+        return;
+      }
+
       // Build config from current form values
       const testConfig: LLMConfigUpdate = {
         provider,
@@ -630,6 +647,12 @@ export default function SettingsPage() {
   };
 
   const requiresApiKey = providerInfo.requiresKey ?? true;
+  const requiresApiBase = providerInfo.requiresBaseUrl ?? false;
+  const baseUrlLabel = providerInfo.baseUrlLabel ?? t('settings.llmConfiguration.baseUrlLabel');
+  const baseUrlPlaceholder =
+    providerInfo.baseUrlPlaceholder ?? t('settings.llmConfiguration.baseUrlPlaceholder');
+  const baseUrlDescription =
+    providerInfo.baseUrlDescription ?? t('settings.llmConfiguration.baseUrlDescription');
 
   return (
     <div className="flex flex-col items-center justify-start p-6 md:p-12 min-h-screen overflow-y-auto">
@@ -964,17 +987,17 @@ export default function SettingsPage() {
 
               {/* API Base URL (optional, for proxies/aggregators/custom endpoints) */}
               <div className="space-y-2">
-                <Label htmlFor="apiBase">{t('settings.llmConfiguration.baseUrlLabel')}</Label>
+                <Label htmlFor="apiBase">
+                  {baseUrlLabel} {requiresApiBase && <span className="text-destructive">*</span>}
+                </Label>
                 <Input
                   id="apiBase"
                   value={apiBase}
                   onChange={(e) => setApiBase(e.target.value)}
-                  placeholder={t('settings.llmConfiguration.baseUrlPlaceholder')}
+                  placeholder={baseUrlPlaceholder}
                   className="font-mono"
                 />
-                <p className="text-xs text-steel-grey font-mono">
-                  {t('settings.llmConfiguration.baseUrlDescription')}
-                </p>
+                <p className="text-xs text-steel-grey font-mono">{baseUrlDescription}</p>
               </div>
 
               {/* Reasoning Effort (optional, only applies to reasoning-capable models) */}
