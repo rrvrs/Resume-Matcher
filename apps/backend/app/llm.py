@@ -470,7 +470,7 @@ def get_model_name(config: LLMConfig) -> str:
     if config.provider == "azure_foundry" and _is_azure_openai_foundry_endpoint(
         config.api_base
     ):
-        if config.model.startswith("azure/"):
+        if config.model.startswith(("azure/", "azure_ai/")):
             return config.model
         if _is_azure_foundry_gpt5_model(config.model):
             return f"azure/gpt5_series/{config.model}"

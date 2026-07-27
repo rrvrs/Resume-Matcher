@@ -44,6 +44,17 @@ class TestProviderConfiguration:
 
         assert get_model_name(config) == "azure_ai/command-r-plus"
 
+    def test_azure_foundry_openai_endpoint_preserves_azure_ai_prefix(self):
+        """Azure OpenAI-style Foundry endpoints do not rewrite azure_ai models."""
+        config = LLMConfig(
+            provider="azure_foundry",
+            model="azure_ai/command-r-plus",
+            api_key="foundry-key",
+            api_base="https://example.services.ai.azure.com/openai/v1/responses",
+        )
+
+        assert get_model_name(config) == "azure_ai/command-r-plus"
+
     def test_azure_foundry_openai_endpoint_routes_gpt5_via_azure(self):
         """Foundry Azure OpenAI endpoints use Azure GPT-5 routing."""
         config = LLMConfig(
