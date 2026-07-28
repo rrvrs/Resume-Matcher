@@ -252,6 +252,7 @@ export default async function PrintResumePage({ params, searchParams }: PageProp
         resumeData={localizedResumeData}
         template={settings.template}
         settings={printSettings}
+        locale={locale}
         additionalSectionLabels={additionalSectionLabels}
         sectionHeadings={sectionHeadings}
         fallbackLabels={fallbackLabels}

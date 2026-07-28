@@ -56,6 +56,15 @@ describe('resume draft storage helpers', () => {
     });
   });
 
+  it('rejects malformed JSON without throwing', () => {
+    // T-02: every input in the "valid JSON" case below parses cleanly, so the
+    // try/catch in parseResumeDraft was never exercised — it could be deleted
+    // outright and this suite stayed green. These hit the catch.
+    expect(parseResumeDraft('{oops', 'abc-123')).toBeNull();
+    expect(parseResumeDraft('{"data": {', 'abc-123')).toBeNull();
+    expect(parseResumeDraft('undefined', 'abc-123')).toBeNull();
+  });
+
   it('rejects valid JSON that does not look like resume data', () => {
     expect(parseResumeDraft('"not a resume"', 'abc-123')).toBeNull();
     expect(parseResumeDraft(JSON.stringify({ data: 42, updatedAt: 1 }), 'abc-123')).toBeNull();
@@ -93,14 +102,10 @@ describe('resume draft storage helpers', () => {
       ...baseResume,
       education: [
         {
+          id: 1,
           institution: 'MIT',
           degree: 'BS',
-          startDate: '2020',
-          endDate: '2024',
-          location: '',
-          gpa: '',
-          honors: [],
-          relevantCoursework: [],
+          years: '2020 - 2024',
         },
       ],
     });
