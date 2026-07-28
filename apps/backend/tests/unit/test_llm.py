@@ -447,6 +447,52 @@ class TestCompleteJsonFallback:
     @patch("app.llm.get_router")
     @patch("app.llm.get_model_name")
     @patch("app.llm._supports_json_mode")
+    async def test_retry_keeps_reasoning_effort_for_non_azure_providers(
+        self, mock_supports_json, mock_get_name, mock_get_router
+    ):
+        """The minimal-effort retry downgrade is Azure Foundry specific.
+
+        Other providers keep the effort the user configured on every attempt;
+        silently lowering it would change output quality for OpenAI GPT-5,
+        Anthropic and DeepSeek reasoning models.
+        """
+        mock_supports_json.return_value = False
+        mock_get_name.return_value = "gpt-5-nano-2025-08-07"
+
+        empty_choice = MagicMock()
+        empty_choice.message.content = ""
+        empty_response = MagicMock()
+        empty_response.choices = [empty_choice]
+
+        good_choice = MagicMock()
+        good_choice.message.content = (
+            '{"required_skills": [], "preferred_skills": [], "keywords": []}'
+        )
+        good_response = MagicMock()
+        good_response.choices = [good_choice]
+
+        router = MagicMock()
+        router.acompletion = AsyncMock(side_effect=[empty_response, good_response])
+        config = MagicMock()
+        config.provider = "openai"
+        config.reasoning_effort = "high"
+        mock_get_router.return_value = (router, config)
+
+        from app.llm import complete_json
+
+        result = await complete_json(
+            prompt="Extract keywords", schema_type="keywords", retries=2
+        )
+
+        assert result == {"required_skills": [], "preferred_skills": [], "keywords": []}
+        calls = router.acompletion.call_args_list
+        assert calls[0].kwargs["reasoning_effort"] == "high"
+        assert calls[1].kwargs["reasoning_effort"] == "high"
+
+    @pytest.mark.asyncio
+    @patch("app.llm.get_router")
+    @patch("app.llm.get_model_name")
+    @patch("app.llm._supports_json_mode")
     async def test_json_mode_fallback_on_response_format_rejection(
         self, mock_supports_json, mock_get_name, mock_get_router
     ):

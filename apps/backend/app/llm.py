@@ -1185,7 +1185,15 @@ async def complete_json(
             if retry_temp is not None:
                 kwargs["temperature"] = retry_temp
             reasoning_effort = config.reasoning_effort
-            if attempt > 0 and reasoning_effort in ("low", "medium", "high"):
+            # Azure Foundry GPT-5 deployments can burn their whole budget on
+            # reasoning and return no visible content. Dropping to minimal
+            # effort on retry leaves room for the JSON itself. Scoped to this
+            # provider so other providers keep their configured effort.
+            if (
+                attempt > 0
+                and config.provider == "azure_foundry"
+                and reasoning_effort in ("low", "medium", "high")
+            ):
                 reasoning_effort = "minimal"
             if reasoning_effort:
                 kwargs["reasoning_effort"] = reasoning_effort
