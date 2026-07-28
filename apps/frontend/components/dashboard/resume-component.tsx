@@ -34,6 +34,7 @@ export interface Experience {
   location?: string;
   years?: string;
   description?: string[];
+  descriptionStyles?: ('bullet' | 'plain')[];
 }
 
 export interface Education {
@@ -52,6 +53,7 @@ export interface Project {
   github?: string;
   website?: string;
   description?: string[];
+  descriptionStyles?: ('bullet' | 'plain')[];
 }
 
 export interface AdditionalInfo {
@@ -106,6 +108,7 @@ export interface CustomSectionItem {
   location?: string;
   years?: string;
   description?: string[];
+  descriptionStyles?: ('bullet' | 'plain')[];
 }
 
 // Custom section data container

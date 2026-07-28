@@ -8,7 +8,7 @@ import type {
 import { getSortedSections, getSectionMeta } from '@/lib/utils/section-helpers';
 import { formatDateRange } from '@/lib/utils';
 import { DynamicResumeSection } from './dynamic-resume-section';
-import { SafeHtml } from './safe-html';
+import { DescriptionList } from './description-list';
 import baseStyles from './styles/_base.module.css';
 import styles from './styles/modern-two-column.module.css';
 
@@ -208,20 +208,11 @@ export const ResumeModernTwoColumn: React.FC<ResumeModernTwoColumnProps> = ({
                       </span>
                     </div>
 
-                    {exp.description && exp.description.length > 0 && (
-                      <ul
-                        className={`ml-4 ${baseStyles['resume-list']} ${baseStyles['resume-text-xs']}`}
-                      >
-                        {exp.description.map((desc, index) => (
-                          <li key={index} className="flex">
-                            <span className="mr-1.5 flex-shrink-0">•&nbsp;</span>
-                            <span>
-                              <SafeHtml html={desc} />
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                    <DescriptionList
+                      items={exp.description}
+                      styles={exp.descriptionStyles}
+                      textClassName={baseStyles['resume-text-xs']}
+                    />
                   </div>
                 ))}
               </div>
@@ -298,20 +289,11 @@ export const ResumeModernTwoColumn: React.FC<ResumeModernTwoColumnProps> = ({
                           <span>{project.role}</span>
                         </div>
                       )}
-                      {project.description && project.description.length > 0 && (
-                        <ul
-                          className={`ml-4 ${baseStyles['resume-list']} ${baseStyles['resume-text-xs']}`}
-                        >
-                          {project.description.map((desc, index) => (
-                            <li key={index} className="flex">
-                              <span className="mr-1.5 flex-shrink-0">•&nbsp;</span>
-                              <span>
-                                <SafeHtml html={desc} />
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
+                      <DescriptionList
+                        items={project.description}
+                        styles={project.descriptionStyles}
+                        textClassName={baseStyles['resume-text-xs']}
+                      />
                     </div>
                   ))}
                 </div>

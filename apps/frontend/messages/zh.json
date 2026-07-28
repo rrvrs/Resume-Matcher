@@ -292,7 +292,8 @@
         "descriptionPoints": "描述要点"
       },
       "actions": {
-        "addPoint": "添加要点"
+        "addPoint": "添加要点",
+        "togglePointStyle": "切换项目符号"
       },
       "placeholders": {
         "title": "标题",
@@ -732,6 +733,7 @@
     "errors": {
       "unableToConnectBackend": "无法连接到服务器。请确认服务器正在运行。",
       "apiKeyRequired": "所选提供商需要 API 密钥。",
+      "baseUrlRequired": "{provider} 需要基础 URL。",
       "unknownProvider": "后端返回未知提供商：{provider}",
       "unableToSaveConfiguration": "无法保存配置",
       "failedToClearApiKeys": "清除 API 密钥失败，请重试。",
