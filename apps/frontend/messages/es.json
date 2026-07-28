@@ -107,6 +107,26 @@
     "previewMode": "Modo Vista Previa",
     "createAndPreview": "Crear y previsualizar",
     "unsavedDraft": "Borrador sin guardar",
+    "autoSave": {
+      "saving": "Sincronizando...",
+      "saved": "Todos los cambios guardados",
+      "localDraft": "Borrador guardado localmente",
+      "saveNow": "Guardar ahora",
+      "retrySave": "Reintentar guardado",
+      "savedButton": "Guardado"
+    },
+    "draftRecovery": {
+      "title": "¿Restaurar borrador local?",
+      "description": "Un borrador local del navegador es diferente de la copia guardada en el servidor. Restáuralo para seguir editando o usa la copia del servidor y descarta el borrador local.",
+      "restoreDraft": "Restaurar borrador",
+      "useServer": "Usar copia del servidor"
+    },
+    "leaveWithLocalDraft": {
+      "title": "¿Salir sin sincronizar?",
+      "description": "Los últimos cambios aún no pudieron sincronizarse con el servidor. El borrador local sigue guardado en este navegador, pero puede no estar disponible desde otro navegador o dispositivo.",
+      "leave": "Ir al panel",
+      "stay": "Seguir editando"
+    },
     "personalInfo": "Información Personal",
     "summary": "Resumen",
     "experience": "Experiencia",
@@ -454,6 +474,7 @@
     "alerts": {
       "saveNotAvailable": "Guardar solo está disponible al editar un currículum existente.",
       "saveFailed": "No se pudo guardar el currículum. Por favor, inténtalo de nuevo.",
+      "autoSaveFailed": "No se pudo sincronizar. El borrador está seguro localmente.",
       "coverLetterSaveSuccess": "Carta de presentación guardada",
       "outreachSaveSuccess": "Mensaje de contacto guardado",
       "downloadSuccess": "Currículum descargado",
