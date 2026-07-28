@@ -733,6 +733,7 @@
     "errors": {
       "unableToConnectBackend": "서버에 연결할 수 없습니다. 서버가 실행 중인지 확인하세요.",
       "apiKeyRequired": "선택한 제공업체에는 API 키가 필요합니다.",
+      "baseUrlRequired": "{provider}에는 기본 URL이 필요합니다.",
       "unknownProvider": "백엔드에서 알 수 없는 제공업체를 반환했습니다: {provider}",
       "unableToSaveConfiguration": "구성을 저장할 수 없습니다",
       "failedToClearApiKeys": "API 키 삭제에 실패했습니다. 다시 시도해 주세요.",

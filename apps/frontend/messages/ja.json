@@ -733,6 +733,7 @@
     "errors": {
       "unableToConnectBackend": "サーバーに接続できません。サーバーが起動していることを確認してください。",
       "apiKeyRequired": "選択したプロバイダーには API キーが必要です。",
+      "baseUrlRequired": "{provider} にはベース URL が必要です。",
       "unknownProvider": "バックエンドから未知のプロバイダーが返されました: {provider}",
       "unableToSaveConfiguration": "設定を保存できません",
       "failedToClearApiKeys": "API キーの消去に失敗しました。もう一度お試しください。",

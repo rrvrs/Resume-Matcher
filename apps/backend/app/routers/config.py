@@ -434,6 +434,7 @@ async def update_feature_prompts(
 # their env-fallback skip in resolve_api_key.
 SUPPORTED_PROVIDERS = [
     "openai",
+    "azure_foundry",
     "anthropic",
     "google",
     "openrouter",
@@ -493,6 +494,13 @@ async def update_api_keys(request: ApiKeysUpdateRequest) -> ApiKeysUpdateRespons
         elif "openai" in stored_keys:
             del stored_keys["openai"]
         updated.append("openai")
+
+    if request.azure_foundry is not None:
+        if request.azure_foundry:
+            stored_keys["azure_foundry"] = request.azure_foundry
+        elif "azure_foundry" in stored_keys:
+            del stored_keys["azure_foundry"]
+        updated.append("azure_foundry")
 
     if request.anthropic is not None:
         if request.anthropic:

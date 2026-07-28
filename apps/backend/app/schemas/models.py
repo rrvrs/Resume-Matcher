@@ -816,6 +816,7 @@ class ApiKeysUpdateRequest(BaseModel):
     """Request to update API keys."""
 
     openai: str | None = None
+    azure_foundry: str | None = None
     anthropic: str | None = None
     google: str | None = None
     openrouter: str | None = None
