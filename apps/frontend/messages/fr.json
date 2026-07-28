@@ -196,7 +196,8 @@
       "resume": "CV",
       "coverLetter": "LETTRE DE MOTIVATION",
       "outreach": "MESSAGE DE CONTACT",
-      "jdMatch": "CORRESPONDANCE FP"
+      "jdMatch": "CORRESPONDANCE FP",
+      "interviewPrep": "PRÉPARATION ENTRETIEN"
     },
     "footer": {
       "moduleLabel": "Module Créateur de CV",
@@ -215,7 +216,9 @@
       "outreachDescription": "Générez un message de prise de contact concis pour LinkedIn ou e-mail basé sur votre CV et la fiche de poste.",
       "generateButton": "Générer {title}",
       "coverLetterFooter": "Conseil : personnalisez d'abord pour de meilleurs résultats.",
-      "outreachFooter": "Conseil : restez bref et personnalisé."
+      "outreachFooter": "Conseil : restez bref et personnalisé.",
+      "interviewPrepDescription": "Générez une préparation à l'entretien spécifique au poste, basée sur votre CV personnalisé et la fiche de poste.",
+      "interviewPrepFooter": "Conseil : utilisez cette fonction après la personnalisation pour préparer des réponses sincères et fondées sur votre CV."
     },
     "regenerateDialog": {
       "title": "Régénérer {title} ?",
@@ -309,7 +312,8 @@
         "descriptionPoints": "Points de description"
       },
       "actions": {
-        "addPoint": "Ajouter un point"
+        "addPoint": "Ajouter un point",
+        "togglePointStyle": "Basculer la puce"
       },
       "placeholders": {
         "title": "Titre",
@@ -464,7 +468,8 @@
       "editorPanel": "Panneau d'édition",
       "coverLetterEditor": "Éditeur de lettre de motivation",
       "outreachEditor": "Éditeur de message de contact",
-      "jdMatchAnalysis": "Analyse de correspondance FP"
+      "jdMatchAnalysis": "Analyse de correspondance FP",
+      "interviewPrep": "Préparation à l'entretien"
     },
     "alerts": {
       "saveNotAvailable": "L'enregistrement n'est disponible que lors de la modification d'un CV existant.",
@@ -482,7 +487,8 @@
       "coverLetterDownloadFailed": "Impossible de télécharger la lettre de motivation : {error}",
       "outreachSaveFailed": "Impossible d'enregistrer le message de contact. Veuillez réessayer.",
       "coverLetterGenerateFailed": "Impossible de générer la lettre de motivation : {error}",
-      "outreachGenerateFailed": "Impossible de générer le message de contact : {error}"
+      "outreachGenerateFailed": "Impossible de générer le message de contact : {error}",
+      "interviewPrepGenerateFailed": "Impossible de générer la préparation à l'entretien : {error}"
     }
   },
   "enrichment": {
@@ -726,7 +732,11 @@
       "customPromptLabel": "Invite personnalisée (optionnelle)",
       "customPromptHelp": "Doit inclure ces espaces réservés (chacun entre accolades) : job_description, resume_data, output_language. Laissez vide pour utiliser l'invite par défaut.",
       "customPromptResetButton": "Rétablir la valeur par défaut",
-      "customPromptErrorMissing": "Espaces réservés manquants : {missing}"
+      "customPromptErrorMissing": "Espaces réservés manquants : {missing}",
+      "interviewPrep": {
+        "label": "Préparation à l'entretien",
+        "description": "Générez automatiquement une préparation à l'entretien en même temps que les CV personnalisés enregistrés"
+      }
     },
     "promptSettings": {
       "title": "Paramètres d'invite",
@@ -744,6 +754,7 @@
     "errors": {
       "unableToConnectBackend": "Impossible d'atteindre le serveur. Assurez-vous qu'il est en cours d'exécution.",
       "apiKeyRequired": "La clé API est requise pour le fournisseur sélectionné.",
+      "baseUrlRequired": "{provider} nécessite une URL de base.",
       "unknownProvider": "Fournisseur inconnu retourné par le backend : {provider}",
       "unableToSaveConfiguration": "Impossible d'enregistrer la configuration",
       "failedToClearApiKeys": "Impossible d'effacer les clés API. Veuillez réessayer.",
@@ -1026,6 +1037,25 @@
       "loadFailed": "Impossible de charger les candidatures.",
       "moveFailed": "Impossible de déplacer la candidature.",
       "deleteFailed": "Impossible de supprimer la ou les candidatures."
+    }
+  },
+  "interviewPrep": {
+    "title": "Préparation à l'entretien",
+    "regenerate": "Régénérer",
+    "unavailableTitle": "Préparation à l'entretien non disponible",
+    "loadingContextDescription": "Vérification du contexte du poste pour ce CV personnalisé avant la génération.",
+    "missingContextDescription": "Ce CV personnalisé ne dispose pas du contexte de poste enregistré nécessaire pour générer la préparation à l'entretien. Personnalisez à nouveau le CV avec une fiche de poste pour utiliser ce flux.",
+    "saveRequiredDescription": "Enregistrez ce CV personnalisé avant de générer la préparation à l'entretien.",
+    "focusArea": "Point d'attention",
+    "suggestedAnswerPoints": "Éléments de réponse suggérés",
+    "whyItMatters": "Pourquoi c'est important",
+    "preparationSuggestion": "Suggestion de préparation",
+    "sections": {
+      "roleFit": "Analyse d'adéquation au poste",
+      "resumeQuestions": "Questions basées sur le CV",
+      "projectFollowUps": "Questions de suivi sur les projets",
+      "skillGaps": "Écarts de compétences",
+      "talkingPoints": "Arguments clés"
     }
   }
 }

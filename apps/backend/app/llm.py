@@ -5,6 +5,7 @@ import logging
 import re
 import threading
 from typing import Any, Literal
+from urllib.parse import urlsplit
 
 import litellm
 from litellm import Router
@@ -58,7 +59,48 @@ class LLMConfig(BaseModel):
     model: str
     api_key: str
     api_base: str | None = None
+    api_version: str | None = None
     reasoning_effort: Literal["minimal", "low", "medium", "high"] | None = None
+
+
+def _is_azure_openai_foundry_endpoint(api_base: str | None, model: str | None = None) -> bool:
+    """Return True for Azure AI Foundry endpoints exposing Azure OpenAI APIs."""
+    if not api_base:
+        return False
+    parsed = urlsplit(api_base.strip())
+    host = parsed.hostname or ""
+    path = parsed.path.rstrip("/")
+    if not host.endswith(".services.ai.azure.com"):
+        return False
+    if path == "/models" or path.startswith("/models/"):
+        return False
+    if not path:
+        return model is not None and _is_azure_foundry_gpt5_model(model)
+    return path == "/openai" or path.startswith("/openai/")
+
+
+def _is_azure_foundry_gpt5_model(model: str) -> bool:
+    """Return True when a deployment/model name should use LiteLLM GPT-5 routing."""
+    normalized = model.lower()
+    return "gpt-5" in normalized or "gpt5_series/" in normalized
+
+
+def _azure_foundry_api_version(config: LLMConfig) -> str | None:
+    """Resolve API version for Azure Foundry calls.
+
+    Azure's v1 Foundry/OpenAI URLs look like
+    `https://<resource>.services.ai.azure.com/openai/v1/responses`. LiteLLM
+    expects the service root plus `api_version='v1'` for that API family.
+    """
+    if config.api_version:
+        return config.api_version
+    if config.provider != "azure_foundry" or not config.api_base:
+        return None
+    parsed = urlsplit(config.api_base.strip())
+    path = parsed.path.rstrip("/")
+    if "/openai/v1" in path or (not path and _is_azure_foundry_gpt5_model(config.model)):
+        return "v1"
+    return None
 
 
 def _normalize_api_base(provider: str, api_base: str | None) -> str | None:
@@ -82,6 +124,13 @@ def _normalize_api_base(provider: str, api_base: str | None) -> str | None:
         return None
 
     base = base.rstrip("/")
+
+    # Azure AI Foundry can expose Azure OpenAI APIs under paths like
+    # /openai/v1/responses. LiteLLM's Azure v1 client expects the service root
+    # and appends /openai/v1/ itself, so strip endpoint-specific suffixes.
+    if provider == "azure_foundry" and _is_azure_openai_foundry_endpoint(base):
+        parsed = urlsplit(base)
+        return f"{parsed.scheme}://{parsed.netloc}"
 
     # OpenAI / OpenAI-compatible: preserve the URL as-is. The OpenAI client
     # resolves paths correctly whether the base includes /v1 or not.
@@ -302,6 +351,7 @@ def _scrub_secrets(text: str) -> str:
 _PROVIDER_KEY_MAP: dict[str, str] = {
     "openai": "openai",
     "openai_compatible": "openai_compatible",
+    "azure_foundry": "azure_foundry",
     "anthropic": "anthropic",
     "gemini": "google",
     "openrouter": "openrouter",
@@ -396,6 +446,7 @@ def get_llm_config() -> LLMConfig:
         model=model,
         api_key=api_key,
         api_base=stored.get("api_base", settings.llm_api_base),
+        api_version=stored.get("api_version"),
         reasoning_effort=reasoning_effort,
     )
 
@@ -413,6 +464,7 @@ def get_model_name(config: LLMConfig) -> str:
         # client handles the request; works for llama.cpp, vLLM, LM Studio,
         # and any server exposing the OpenAI Chat Completions API shape.
         "openai_compatible": "openai/",
+        "azure_foundry": "azure_ai/",
         "anthropic": "anthropic/",
         "openrouter": "openrouter/",
         "gemini": "gemini/",
@@ -422,6 +474,15 @@ def get_model_name(config: LLMConfig) -> str:
     }
 
     prefix = provider_prefixes.get(config.provider, "")
+
+    if config.provider == "azure_foundry" and _is_azure_openai_foundry_endpoint(
+        config.api_base, config.model
+    ):
+        if config.model.startswith(("azure/", "azure_ai/")):
+            return config.model
+        if _is_azure_foundry_gpt5_model(config.model):
+            return f"azure/gpt5_series/{config.model}"
+        return f"azure/{config.model}"
 
     # OpenRouter is special: always add openrouter/ prefix unless already present
     # OpenRouter models use nested format: openrouter/anthropic/claude-3.5-sonnet
@@ -437,6 +498,8 @@ def get_model_name(config: LLMConfig) -> str:
         "gemini/",
         "deepseek/",
         "groq/",
+        "azure/",
+        "azure_ai/",
         "ollama/",
         "ollama_chat/",
         "openai/",
@@ -466,7 +529,7 @@ def _config_fingerprint(config: LLMConfig) -> str:
     The raw key is never stored in the fingerprint string.
     """
     key_hash = hash(config.api_key) if config.api_key else 0
-    return f"{config.provider}|{config.model}|{key_hash}|{config.api_base}"
+    return f"{config.provider}|{config.model}|{key_hash}|{config.api_base}|{config.api_version}"
 
 
 def _build_router(config: LLMConfig) -> Router:
@@ -480,6 +543,9 @@ def _build_router(config: LLMConfig) -> Router:
     api_base = _normalize_api_base(config.provider, config.api_base)
     if api_base:
         litellm_params["api_base"] = api_base
+    api_version = _azure_foundry_api_version(config)
+    if api_version:
+        litellm_params["api_version"] = api_version
 
     return Router(
         model_list=[
@@ -563,6 +629,9 @@ async def check_llm_health(
             "api_base": _normalize_api_base(config.provider, config.api_base),
             "timeout": LLM_TIMEOUT_HEALTH_CHECK,
         }
+        api_version = _azure_foundry_api_version(config)
+        if api_version:
+            kwargs["api_version"] = api_version
         if config.reasoning_effort:
             kwargs["reasoning_effort"] = config.reasoning_effort
 
@@ -959,6 +1028,7 @@ def _calculate_timeout(
     provider_factors = {
         "openai": 1.0,
         "anthropic": 1.2,
+        "azure_foundry": 1.2,
         "openrouter": 1.5,  # More variable latency
         "groq": 1.0,
         "ollama": 2.0,  # Local models can be slower
@@ -1114,8 +1184,19 @@ async def complete_json(
             retry_temp = _get_retry_temperature(model_name, attempt)
             if retry_temp is not None:
                 kwargs["temperature"] = retry_temp
-            if config.reasoning_effort:
-                kwargs["reasoning_effort"] = config.reasoning_effort
+            reasoning_effort = config.reasoning_effort
+            # Azure Foundry GPT-5 deployments can burn their whole budget on
+            # reasoning and return no visible content. Dropping to minimal
+            # effort on retry leaves room for the JSON itself. Scoped to this
+            # provider so other providers keep their configured effort.
+            if (
+                attempt > 0
+                and config.provider == "azure_foundry"
+                and reasoning_effort in ("low", "medium", "high")
+            ):
+                reasoning_effort = "minimal"
+            if reasoning_effort:
+                kwargs["reasoning_effort"] = reasoning_effort
 
             # JSON-012: Fallback to prompt-only JSON mode after JSON-mode failure.
             # LiteLLM registry may report support for models that the upstream

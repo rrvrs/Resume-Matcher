@@ -312,7 +312,8 @@
         "descriptionPoints": "Description Points"
       },
       "actions": {
-        "addPoint": "Add Point"
+        "addPoint": "Add Point",
+        "togglePointStyle": "Toggle bullet marker"
       },
       "placeholders": {
         "title": "Title",
@@ -753,6 +754,7 @@
     "errors": {
       "unableToConnectBackend": "Can't reach the server. Make sure it's running.",
       "apiKeyRequired": "API key is required for the selected provider.",
+      "baseUrlRequired": "{provider} requires a Base URL.",
       "unknownProvider": "Unknown provider returned from backend: {provider}",
       "unableToSaveConfiguration": "Unable to save configuration",
       "failedToClearApiKeys": "Failed to clear API keys. Please try again.",
