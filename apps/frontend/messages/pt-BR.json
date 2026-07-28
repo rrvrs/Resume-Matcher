@@ -292,7 +292,8 @@
         "descriptionPoints": "Pontos de Descrição"
       },
       "actions": {
-        "addPoint": "Adicionar Ponto"
+        "addPoint": "Adicionar Ponto",
+        "togglePointStyle": "Alternar marcador"
       },
       "placeholders": {
         "title": "Título",

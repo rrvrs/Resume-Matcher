@@ -292,7 +292,8 @@
         "descriptionPoints": "説明ポイント"
       },
       "actions": {
-        "addPoint": "ポイントを追加"
+        "addPoint": "ポイントを追加",
+        "togglePointStyle": "箇条書き記号を切り替え"
       },
       "placeholders": {
         "title": "タイトル",
