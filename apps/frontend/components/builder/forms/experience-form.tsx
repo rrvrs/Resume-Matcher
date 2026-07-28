@@ -291,7 +291,7 @@ export const ExperienceForm: React.FC<ExperienceFormProps> = ({ data, onChange }
                             variant="ghost"
                             size="icon"
                             onClick={() => handleToggleDescriptionStyle(item.id, idx)}
-                            className="h-[60px] w-8 text-muted-foreground hover:text-blue-700 self-end"
+                            className="h-[60px] w-8 text-muted-foreground hover:text-primary self-end"
                             aria-label={t('builder.genericItemForm.actions.togglePointStyle')}
                             title={t('builder.genericItemForm.actions.togglePointStyle')}
                           >

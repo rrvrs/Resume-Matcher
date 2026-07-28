@@ -292,7 +292,8 @@
         "descriptionPoints": "설명 항목"
       },
       "actions": {
-        "addPoint": "항목 추가"
+        "addPoint": "항목 추가",
+        "togglePointStyle": "글머리 기호 전환"
       },
       "placeholders": {
         "title": "제목",
