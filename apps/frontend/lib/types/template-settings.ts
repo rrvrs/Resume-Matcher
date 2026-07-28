@@ -133,14 +133,14 @@ export const HEADER_FONT_MAP: Record<HeaderFontFamily, string> = {
   serif: 'ui-serif, Georgia, Cambria, "Times New Roman", var(--font-noto-sans-sc), Times, serif',
   'sans-serif':
     'ui-sans-serif, system-ui, var(--font-noto-sans-sc), sans-serif, "Apple Color Emoji", "Segoe UI Emoji"',
-  mono: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+  mono: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, var(--font-noto-sans-sc), monospace',
 };
 
 export const BODY_FONT_MAP: Record<BodyFontFamily, string> = {
   serif: 'ui-serif, Georgia, Cambria, "Times New Roman", var(--font-noto-sans-sc), Times, serif',
   'sans-serif':
     'ui-sans-serif, system-ui, var(--font-noto-sans-sc), sans-serif, "Apple Color Emoji", "Segoe UI Emoji"',
-  mono: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+  mono: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, var(--font-noto-sans-sc), monospace',
 };
 
 /**
