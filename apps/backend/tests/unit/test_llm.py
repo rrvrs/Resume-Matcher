@@ -57,7 +57,13 @@ class TestProviderConfiguration:
         assert get_model_name(config) == "azure_ai/command-r-plus"
 
     def test_azure_foundry_service_root_routes_gpt5_via_azure(self):
-        """Foundry service-root GPT deployments use Azure GPT-5 routing."""
+        """Foundry service-root GPT deployments route via the bare azure/ prefix.
+
+        Previously this asserted an ``azure/gpt5_series/`` segment. That string
+        is absent from LiteLLM's model registry, so every capability lookup in
+        app.llm silently degraded (max_tokens 128k -> 4096, JSON mode off).
+        LiteLLM already selects its GPT-5 config from the bare deployment name.
+        """
         config = LLMConfig(
             provider="azure_foundry",
             model="gpt-5.4-mini",
@@ -65,7 +71,7 @@ class TestProviderConfiguration:
             api_base="https://example.services.ai.azure.com",
         )
 
-        assert get_model_name(config) == "azure/gpt5_series/gpt-5.4-mini"
+        assert get_model_name(config) == "azure/gpt-5.4-mini"
         assert _azure_foundry_api_version(config) == "v1"
 
     def test_azure_foundry_service_root_keeps_non_gpt_on_azure_ai(self):
@@ -80,7 +86,11 @@ class TestProviderConfiguration:
         assert get_model_name(config) == "azure_ai/mistral-large-latest"
 
     def test_azure_foundry_openai_endpoint_routes_gpt5_via_azure(self):
-        """Foundry Azure OpenAI endpoints use Azure GPT-5 routing."""
+        """Foundry Azure OpenAI endpoints route via the bare azure/ prefix.
+
+        See the service-root test above for why the gpt5_series/ segment was
+        removed.
+        """
         config = LLMConfig(
             provider="azure_foundry",
             model="gpt-5.4-mini",
@@ -88,7 +98,7 @@ class TestProviderConfiguration:
             api_base="https://example.services.ai.azure.com/openai/v1/responses",
         )
 
-        assert get_model_name(config) == "azure/gpt5_series/gpt-5.4-mini"
+        assert get_model_name(config) == "azure/gpt-5.4-mini"
 
     def test_azure_foundry_openai_endpoint_normalizes_to_resource_root(self):
         """LiteLLM appends /openai/v1 itself for Azure v1 API calls."""
