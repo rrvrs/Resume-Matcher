@@ -8,6 +8,7 @@ import type {
 
 type DescribedItem = {
   description?: unknown;
+  descriptionStyles?: unknown;
 };
 
 const isMeaningfulText = (value: unknown): value is string => {
@@ -22,19 +23,28 @@ const normalizeStringList = (items?: string[]): string[] | undefined => {
 
 const normalizeDescriptionFields = <T extends DescribedItem>(item: T): T => {
   const descriptions = Array.isArray(item.description) ? item.description : [];
+  // descriptionStyles is positional — styles[i] belongs to description[i]. It
+  // must be filtered in lockstep, or dropping a blank description silently
+  // shifts every later point's bullet/plain setting onto its neighbour.
+  const styles = Array.isArray(item.descriptionStyles) ? item.descriptionStyles : undefined;
   const nextDescriptions: string[] = [];
+  const nextStyles: unknown[] = [];
 
-  descriptions.forEach((description) => {
+  descriptions.forEach((description, index) => {
     if (!isMeaningfulText(description)) {
       return;
     }
 
     nextDescriptions.push(description.trim());
+    if (styles) {
+      nextStyles.push(styles[index] === 'plain' ? 'plain' : 'bullet');
+    }
   });
 
   return {
     ...item,
     description: nextDescriptions,
+    ...(styles ? { descriptionStyles: nextStyles } : {}),
   };
 };
 

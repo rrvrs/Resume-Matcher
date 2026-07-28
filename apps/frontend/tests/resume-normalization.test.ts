@@ -107,4 +107,49 @@ describe('resume normalization', () => {
     expect(normalized.additional?.technicalSkills).toEqual(['TypeScript']);
     expect(normalized.additional?.languages).toEqual([]);
   });
+
+  it('keeps descriptionStyles aligned when blank description points are dropped', () => {
+    const editorState: ResumeData = {
+      ...baseResume,
+      workExperience: [
+        {
+          id: 1,
+          title: 'Engineer',
+          company: 'Analytical Engines Inc',
+          years: '2024 - Present',
+          description: ['', 'Led the migration', 'Cut costs 40%'],
+          descriptionStyles: ['bullet', 'plain', 'bullet'],
+        },
+      ],
+    };
+
+    const normalized = normalizeResumeForSave(editorState);
+    const experience = normalized.workExperience?.[0];
+
+    // The blank first point is dropped, so its style must be dropped with it —
+    // otherwise 'Led the migration' inherits 'bullet' and 'Cut costs 40%'
+    // inherits 'plain', silently flipping both.
+    expect(experience?.description).toEqual(['Led the migration', 'Cut costs 40%']);
+    expect(experience?.descriptionStyles).toEqual(['plain', 'bullet']);
+  });
+
+  it('leaves items without descriptionStyles untouched', () => {
+    const editorState: ResumeData = {
+      ...baseResume,
+      workExperience: [
+        {
+          id: 1,
+          title: 'Engineer',
+          company: 'Analytical Engines Inc',
+          years: '2024 - Present',
+          description: ['', 'Shipped it'],
+        },
+      ],
+    };
+
+    const experience = normalizeResumeForSave(editorState).workExperience?.[0];
+
+    expect(experience?.description).toEqual(['Shipped it']);
+    expect(experience).not.toHaveProperty('descriptionStyles');
+  });
 });

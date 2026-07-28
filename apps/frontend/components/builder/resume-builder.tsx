@@ -582,8 +582,11 @@ const ResumeBuilderContent = () => {
     const timerId = window.setTimeout(async () => {
       setIsAutoSaving(true);
       try {
-        const { canonicalPayload } = await queueResumeSave(editorSnapshot);
-        setLastSavedData(canonicalPayload);
+        const { response, canonicalPayload } = await queueResumeSave(editorSnapshot);
+        // Prefer the server's copy: it may rewrite the payload (e.g. aligning
+        // descriptionStyles), and comparing a stale client payload against the
+        // server state would surface a spurious draft-recovery prompt on reload.
+        setLastSavedData((response?.processed_resume as ResumeData) ?? canonicalPayload);
         setLastAutoSavedAt(Date.now());
         setAutoSaveError(null);
 
@@ -624,8 +627,8 @@ const ResumeBuilderContent = () => {
         setIsSaving(true);
         const versionAtFlush = editVersionRef.current;
         const editorSnapshot = resumeData;
-        const { canonicalPayload } = await queueResumeSave(editorSnapshot);
-        setLastSavedData(canonicalPayload);
+        const { response, canonicalPayload } = await queueResumeSave(editorSnapshot);
+        setLastSavedData((response?.processed_resume as ResumeData) ?? canonicalPayload);
         setAutoSaveError(null);
 
         if (editVersionRef.current === versionAtFlush) {
