@@ -75,11 +75,7 @@ export function ATSScoreCard({ atsScore }: ATSScoreCardProps) {
       {/* Sub-score breakdown */}
       <div className="space-y-3">
         {Object.entries(sub_scores).map(([key, value]) => (
-          <SubScoreRow
-            key={key}
-            label={SUB_SCORE_LABELS[key] ?? key}
-            value={value}
-          />
+          <SubScoreRow key={key} label={SUB_SCORE_LABELS[key] ?? key} value={value} />
         ))}
       </div>
 
