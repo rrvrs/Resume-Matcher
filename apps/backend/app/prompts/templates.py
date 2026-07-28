@@ -8,6 +8,7 @@ LANGUAGE_NAMES = {
     "ja": "Japanese",
     "pt": "Brazilian Portuguese",
     "fr": "French",
+    "ko": "Korean",
 }
 
 

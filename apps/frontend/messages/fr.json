@@ -197,8 +197,8 @@
       "generateButton": "Générer {title}",
       "coverLetterFooter": "Conseil : personnalisez d'abord pour de meilleurs résultats.",
       "outreachFooter": "Conseil : restez bref et personnalisé.",
-      "interviewPrepDescription": "Générez une préparation à l'entretien adaptée au poste à partir de votre CV personnalisé et de la fiche de poste.",
-      "interviewPrepFooter": "Conseil : utilisez-la après la personnalisation pour préparer des réponses fiables et ancrées dans votre CV."
+      "interviewPrepDescription": "Générez une préparation à l'entretien spécifique au poste, basée sur votre CV personnalisé et la fiche de poste.",
+      "interviewPrepFooter": "Conseil : utilisez cette fonction après la personnalisation pour préparer des réponses sincères et fondées sur votre CV."
     },
     "regenerateDialog": {
       "title": "Régénérer {title} ?",
@@ -713,7 +713,7 @@
       "customPromptErrorMissing": "Espaces réservés manquants : {missing}",
       "interviewPrep": {
         "label": "Préparation à l'entretien",
-        "description": "Générez automatiquement une préparation à l'entretien avec les CV personnalisés enregistrés"
+        "description": "Générez automatiquement une préparation à l'entretien en même temps que les CV personnalisés enregistrés"
       }
     },
     "promptSettings": {
@@ -1020,12 +1020,12 @@
   "interviewPrep": {
     "title": "Préparation à l'entretien",
     "regenerate": "Régénérer",
-    "unavailableTitle": "Préparation à l'entretien indisponible",
+    "unavailableTitle": "Préparation à l'entretien non disponible",
     "loadingContextDescription": "Vérification du contexte du poste pour ce CV personnalisé avant la génération.",
-    "missingContextDescription": "Ce CV personnalisé ne contient pas le contexte de poste enregistré nécessaire pour générer la préparation à l'entretien. Personnalisez à nouveau le CV avec une fiche de poste pour utiliser ce flux.",
+    "missingContextDescription": "Ce CV personnalisé ne dispose pas du contexte de poste enregistré nécessaire pour générer la préparation à l'entretien. Personnalisez à nouveau le CV avec une fiche de poste pour utiliser ce flux.",
     "saveRequiredDescription": "Enregistrez ce CV personnalisé avant de générer la préparation à l'entretien.",
     "focusArea": "Point d'attention",
-    "suggestedAnswerPoints": "Points de réponse suggérés",
+    "suggestedAnswerPoints": "Éléments de réponse suggérés",
     "whyItMatters": "Pourquoi c'est important",
     "preparationSuggestion": "Suggestion de préparation",
     "sections": {
@@ -1033,7 +1033,7 @@
       "resumeQuestions": "Questions basées sur le CV",
       "projectFollowUps": "Questions de suivi sur les projets",
       "skillGaps": "Écarts de compétences",
-      "talkingPoints": "Points à aborder"
+      "talkingPoints": "Arguments clés"
     }
   }
 }
