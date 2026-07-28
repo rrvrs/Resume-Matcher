@@ -124,8 +124,8 @@ export const ResumeClean: React.FC<ResumeCleanProps> = ({
     );
   };
 
-  const renderBullets = (items?: string[], styles?: ('bullet' | 'plain')[]) => (
-    <DescriptionList items={items} styles={styles} />
+  const renderBullets = (items?: string[], pointStyles?: ('bullet' | 'plain')[]) => (
+    <DescriptionList items={items} styles={pointStyles} />
   );
 
   const renderSection = (section: SectionMeta) => {
@@ -364,7 +364,7 @@ const AdditionalSection: React.FC<{
 const DynamicResumeSectionClean: React.FC<{
   sectionMeta: SectionMeta;
   resumeData: ResumeData;
-  renderBullets: (items?: string[], styles?: ('bullet' | 'plain')[]) => React.ReactNode;
+  renderBullets: (items?: string[], pointStyles?: ('bullet' | 'plain')[]) => React.ReactNode;
   renderEntryHeader: (
     primary?: string,
     role?: string,

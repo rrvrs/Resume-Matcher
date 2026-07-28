@@ -4,6 +4,13 @@ export const LEGACY_RESUME_DRAFT_STORAGE_KEY = 'resume_builder_draft';
 export const RESUME_DRAFT_STORAGE_PREFIX = `${LEGACY_RESUME_DRAFT_STORAGE_KEY}:`;
 const NEW_RESUME_DRAFT_ID = 'new';
 
+/**
+ * How long a local draft stays eligible for recovery. Beyond this the user has
+ * almost certainly moved on, and offering it risks resurrecting stale content
+ * over a server copy that has since changed elsewhere.
+ */
+export const RESUME_DRAFT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
 export interface ResumeDraftEnvelope {
   resumeId: string | null;
   updatedAt: number;
@@ -77,6 +84,13 @@ export function parseResumeDraft(
     const parsed = JSON.parse(rawDraft) as unknown;
     if (isResumeDraftEnvelope(parsed)) {
       if ((parsed.resumeId || null) !== (resumeId || null)) {
+        return null;
+      }
+
+      // T-04: `updatedAt` was written and validated but never read, so a draft
+      // from a one-off tailor session survived forever and would be offered as
+      // "unsaved work" months later. Expire it instead.
+      if (Date.now() - parsed.updatedAt > RESUME_DRAFT_MAX_AGE_MS) {
         return null;
       }
 

@@ -5,6 +5,7 @@ import {
   buildResumeDraft,
   getResumeDraftStorageKey,
   parseResumeDraft,
+  RESUME_DRAFT_MAX_AGE_MS,
   shouldPromptForDraftRestore,
 } from '@/lib/utils/resume-draft-storage';
 
@@ -46,7 +47,10 @@ describe('resume draft storage helpers', () => {
   });
 
   it('parses both the new draft envelope and the legacy plain data shape', () => {
-    const envelope = buildResumeDraft('abc-123', baseResume, 1770000000000);
+    // Timestamp must be recent: drafts past RESUME_DRAFT_MAX_AGE_MS are expired
+    // by design (see the "draft expiry" suite below). This case is about the
+    // round-trip shape, not the TTL.
+    const envelope = buildResumeDraft('abc-123', baseResume, Date.now() - 1000);
     expect(parseResumeDraft(JSON.stringify(envelope), 'abc-123')).toEqual(envelope);
 
     expect(parseResumeDraft(JSON.stringify(baseResume), 'abc-123', 1770000000100)).toEqual({
@@ -111,5 +115,27 @@ describe('resume draft storage helpers', () => {
     });
 
     expect(shouldPromptForDraftRestore(changedDraft, baseResume)).toBe(true);
+  });
+});
+
+describe('draft expiry', () => {
+  it('rejects a draft older than the max age', () => {
+    const stale = JSON.stringify({
+      resumeId: 'abc-123',
+      updatedAt: Date.now() - (RESUME_DRAFT_MAX_AGE_MS + 60_000),
+      data: baseResume,
+    });
+
+    expect(parseResumeDraft(stale, 'abc-123')).toBeNull();
+  });
+
+  it('keeps a draft inside the max age', () => {
+    const fresh = JSON.stringify({
+      resumeId: 'abc-123',
+      updatedAt: Date.now() - (RESUME_DRAFT_MAX_AGE_MS - 60_000),
+      data: baseResume,
+    });
+
+    expect(parseResumeDraft(fresh, 'abc-123')).not.toBeNull();
   });
 });
