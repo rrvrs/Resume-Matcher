@@ -107,6 +107,26 @@
     "previewMode": "Preview Mode",
     "createAndPreview": "Create & Preview",
     "unsavedDraft": "Unsaved Draft",
+    "autoSave": {
+      "saving": "Syncing...",
+      "saved": "All changes saved",
+      "localDraft": "Draft saved locally",
+      "saveNow": "Save now",
+      "retrySave": "Retry save",
+      "savedButton": "Saved"
+    },
+    "draftRecovery": {
+      "title": "Restore Local Draft?",
+      "description": "A local browser draft is different from the saved server copy. Restore it to continue editing, or use the server copy and discard the local draft.",
+      "restoreDraft": "Restore Draft",
+      "useServer": "Use Server Copy"
+    },
+    "leaveWithLocalDraft": {
+      "title": "Leave Without Syncing?",
+      "description": "The latest edits could not be synced to the server yet. A local browser draft is still saved, but it may not be available from another browser or device.",
+      "leave": "Leave Dashboard",
+      "stay": "Keep Editing"
+    },
     "personalInfo": "Personal Information",
     "summary": "Summary",
     "experience": "Experience",
@@ -454,6 +474,7 @@
     "alerts": {
       "saveNotAvailable": "Save is only available when editing an existing resume.",
       "saveFailed": "Failed to save resume. Please try again.",
+      "autoSaveFailed": "Couldn't sync. Draft is safe locally.",
       "coverLetterSaveSuccess": "Cover letter saved",
       "outreachSaveSuccess": "Outreach message saved",
       "downloadSuccess": "Resume downloaded",

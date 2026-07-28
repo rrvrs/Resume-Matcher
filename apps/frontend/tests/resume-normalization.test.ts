@@ -1,0 +1,155 @@
+import { describe, expect, it } from 'vitest';
+
+import type { ResumeData } from '@/components/dashboard/resume-component';
+import { normalizeResumeForRender, normalizeResumeForSave } from '@/lib/utils/resume-normalization';
+
+const baseResume = {
+  personalInfo: {
+    name: 'Ada Lovelace',
+    title: 'Software Engineer',
+    email: 'ada@example.com',
+  },
+  summary: '',
+  workExperience: [],
+  education: [],
+  personalProjects: [],
+  additional: {},
+} satisfies ResumeData;
+
+describe('resume normalization', () => {
+  it('drops empty description placeholders from the canonical save payload', () => {
+    const editorState: ResumeData = {
+      ...baseResume,
+      workExperience: [
+        {
+          id: 1,
+          title: 'Engineer',
+          company: 'Analytical Engines Inc',
+          years: '2024 - Present',
+          description: ['', 'Built reliable systems', '   '],
+        },
+      ],
+    };
+
+    expect(normalizeResumeForSave(editorState).workExperience?.[0]).toMatchObject({
+      description: ['Built reliable systems'],
+    });
+    expect(editorState.workExperience?.[0].description).toEqual([
+      '',
+      'Built reliable systems',
+      '   ',
+    ]);
+  });
+
+  it('drops entirely empty editor-only experience entries from the save payload', () => {
+    const editorState: ResumeData = {
+      ...baseResume,
+      workExperience: [
+        {
+          id: 1,
+          title: '',
+          company: '',
+          location: '',
+          years: '',
+          description: [''],
+        },
+      ],
+    };
+
+    expect(normalizeResumeForSave(editorState).workExperience).toEqual([]);
+  });
+
+  it('normalizes custom item-list sections for rendering and saving', () => {
+    const editorState: ResumeData = {
+      ...baseResume,
+      customSections: {
+        custom_1: {
+          sectionType: 'itemList',
+          items: [
+            {
+              id: 1,
+              title: 'Publication',
+              description: ['', 'Accepted at a systems workshop'],
+            },
+          ],
+        },
+      },
+    };
+
+    const normalized = normalizeResumeForRender(editorState);
+
+    expect(normalized.customSections?.custom_1.items?.[0].description).toEqual([
+      'Accepted at a systems workshop',
+    ]);
+  });
+
+  it('ignores malformed persisted list and description values during normalization', () => {
+    const malformedState = {
+      ...baseResume,
+      workExperience: [
+        {
+          id: 1,
+          title: 'Engineer',
+          company: 'Analytical Engines Inc',
+          years: '2024 - Present',
+          description: 'not-an-array',
+        },
+      ],
+      additional: {
+        technicalSkills: ['TypeScript', null, '  '],
+        languages: 'not-an-array',
+      },
+    } as unknown as ResumeData;
+
+    const normalized = normalizeResumeForSave(malformedState);
+
+    expect(normalized.workExperience?.[0].description).toEqual([]);
+    expect(normalized.additional?.technicalSkills).toEqual(['TypeScript']);
+    expect(normalized.additional?.languages).toEqual([]);
+  });
+
+  it('keeps descriptionStyles aligned when blank description points are dropped', () => {
+    const editorState: ResumeData = {
+      ...baseResume,
+      workExperience: [
+        {
+          id: 1,
+          title: 'Engineer',
+          company: 'Analytical Engines Inc',
+          years: '2024 - Present',
+          description: ['', 'Led the migration', 'Cut costs 40%'],
+          descriptionStyles: ['bullet', 'plain', 'bullet'],
+        },
+      ],
+    };
+
+    const normalized = normalizeResumeForSave(editorState);
+    const experience = normalized.workExperience?.[0];
+
+    // The blank first point is dropped, so its style must be dropped with it —
+    // otherwise 'Led the migration' inherits 'bullet' and 'Cut costs 40%'
+    // inherits 'plain', silently flipping both.
+    expect(experience?.description).toEqual(['Led the migration', 'Cut costs 40%']);
+    expect(experience?.descriptionStyles).toEqual(['plain', 'bullet']);
+  });
+
+  it('leaves items without descriptionStyles untouched', () => {
+    const editorState: ResumeData = {
+      ...baseResume,
+      workExperience: [
+        {
+          id: 1,
+          title: 'Engineer',
+          company: 'Analytical Engines Inc',
+          years: '2024 - Present',
+          description: ['', 'Shipped it'],
+        },
+      ],
+    };
+
+    const experience = normalizeResumeForSave(editorState).workExperience?.[0];
+
+    expect(experience?.description).toEqual(['Shipped it']);
+    expect(experience).not.toHaveProperty('descriptionStyles');
+  });
+});
