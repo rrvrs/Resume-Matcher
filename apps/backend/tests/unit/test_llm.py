@@ -4,7 +4,107 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.llm import _appears_truncated, _get_retry_temperature, _supports_temperature
+from app.llm import (
+    LLMConfig,
+    _appears_truncated,
+    _azure_foundry_api_version,
+    _get_retry_temperature,
+    _normalize_api_base,
+    _supports_temperature,
+    get_model_name,
+    resolve_api_key,
+)
+
+
+# ---------------------------------------------------------------------------
+# Provider configuration helpers
+# ---------------------------------------------------------------------------
+
+
+class TestProviderConfiguration:
+    """Tests for provider-specific model and key mapping."""
+
+    def test_azure_foundry_model_uses_litellm_azure_ai_prefix(self):
+        """Azure AI Foundry routes through LiteLLM's azure_ai provider."""
+        config = LLMConfig(
+            provider="azure_foundry",
+            model="mistral-large-latest",
+            api_key="foundry-key",
+            api_base="https://example.services.ai.azure.com/models",
+        )
+
+        assert get_model_name(config) == "azure_ai/mistral-large-latest"
+
+    def test_azure_foundry_model_preserves_existing_prefix(self):
+        """Already-prefixed Azure AI models are not double-prefixed."""
+        config = LLMConfig(
+            provider="azure_foundry",
+            model="azure_ai/command-r-plus",
+            api_key="foundry-key",
+        )
+
+        assert get_model_name(config) == "azure_ai/command-r-plus"
+
+    def test_azure_foundry_openai_endpoint_preserves_azure_ai_prefix(self):
+        """Azure OpenAI-style Foundry endpoints do not rewrite azure_ai models."""
+        config = LLMConfig(
+            provider="azure_foundry",
+            model="azure_ai/command-r-plus",
+            api_key="foundry-key",
+            api_base="https://example.services.ai.azure.com/openai/v1/responses",
+        )
+
+        assert get_model_name(config) == "azure_ai/command-r-plus"
+
+    def test_azure_foundry_service_root_routes_gpt5_via_azure(self):
+        """Foundry service-root GPT deployments use Azure GPT-5 routing."""
+        config = LLMConfig(
+            provider="azure_foundry",
+            model="gpt-5.4-mini",
+            api_key="foundry-key",
+            api_base="https://example.services.ai.azure.com",
+        )
+
+        assert get_model_name(config) == "azure/gpt5_series/gpt-5.4-mini"
+        assert _azure_foundry_api_version(config) == "v1"
+
+    def test_azure_foundry_service_root_keeps_non_gpt_on_azure_ai(self):
+        """Non-GPT Foundry service-root models keep Azure AI Inference routing."""
+        config = LLMConfig(
+            provider="azure_foundry",
+            model="mistral-large-latest",
+            api_key="foundry-key",
+            api_base="https://example.services.ai.azure.com",
+        )
+
+        assert get_model_name(config) == "azure_ai/mistral-large-latest"
+
+    def test_azure_foundry_openai_endpoint_routes_gpt5_via_azure(self):
+        """Foundry Azure OpenAI endpoints use Azure GPT-5 routing."""
+        config = LLMConfig(
+            provider="azure_foundry",
+            model="gpt-5.4-mini",
+            api_key="foundry-key",
+            api_base="https://example.services.ai.azure.com/openai/v1/responses",
+        )
+
+        assert get_model_name(config) == "azure/gpt5_series/gpt-5.4-mini"
+
+    def test_azure_foundry_openai_endpoint_normalizes_to_resource_root(self):
+        """LiteLLM appends /openai/v1 itself for Azure v1 API calls."""
+        assert (
+            _normalize_api_base(
+                "azure_foundry",
+                "https://example.services.ai.azure.com/openai/v1/responses",
+            )
+            == "https://example.services.ai.azure.com"
+        )
+
+    def test_azure_foundry_key_resolves_from_provider_store(self):
+        """Azure AI Foundry uses its own encrypted key-store slot."""
+        stored = {"api_keys": {"azure_foundry": "foundry-key"}}
+
+        assert resolve_api_key(stored, "azure_foundry") == "foundry-key"
 
 
 # ---------------------------------------------------------------------------
@@ -301,6 +401,93 @@ class TestCompleteJsonFallback:
         calls = router.acompletion.call_args_list
         assert calls[0].kwargs.get("response_format") == {"type": "json_object"}
         assert "response_format" not in calls[1].kwargs
+
+    @pytest.mark.asyncio
+    @patch("app.llm.get_router")
+    @patch("app.llm.get_model_name")
+    @patch("app.llm._supports_json_mode")
+    async def test_empty_json_retry_lowers_reasoning_effort(
+        self, mock_supports_json, mock_get_name, mock_get_router
+    ):
+        """Reasoning-heavy JSON attempts can return no visible content.
+
+        Retrying with minimal effort gives GPT-5-family models enough budget to
+        produce the requested JSON instead of repeating an empty response.
+        """
+        mock_supports_json.return_value = False
+        mock_get_name.return_value = "azure/gpt5_series/gpt-5.4-mini"
+
+        empty_choice = MagicMock()
+        empty_choice.message.content = ""
+        empty_response = MagicMock()
+        empty_response.choices = [empty_choice]
+
+        good_choice = MagicMock()
+        good_choice.message.content = '{"required_skills": [], "preferred_skills": [], "keywords": []}'
+        good_response = MagicMock()
+        good_response.choices = [good_choice]
+
+        router = MagicMock()
+        router.acompletion = AsyncMock(side_effect=[empty_response, good_response])
+        config = MagicMock()
+        config.provider = "azure_foundry"
+        config.reasoning_effort = "high"
+        mock_get_router.return_value = (router, config)
+
+        from app.llm import complete_json
+
+        result = await complete_json(prompt="Extract keywords", schema_type="keywords", retries=2)
+
+        assert result == {"required_skills": [], "preferred_skills": [], "keywords": []}
+        calls = router.acompletion.call_args_list
+        assert calls[0].kwargs["reasoning_effort"] == "high"
+        assert calls[1].kwargs["reasoning_effort"] == "minimal"
+
+    @pytest.mark.asyncio
+    @patch("app.llm.get_router")
+    @patch("app.llm.get_model_name")
+    @patch("app.llm._supports_json_mode")
+    async def test_retry_keeps_reasoning_effort_for_non_azure_providers(
+        self, mock_supports_json, mock_get_name, mock_get_router
+    ):
+        """The minimal-effort retry downgrade is Azure Foundry specific.
+
+        Other providers keep the effort the user configured on every attempt;
+        silently lowering it would change output quality for OpenAI GPT-5,
+        Anthropic and DeepSeek reasoning models.
+        """
+        mock_supports_json.return_value = False
+        mock_get_name.return_value = "gpt-5-nano-2025-08-07"
+
+        empty_choice = MagicMock()
+        empty_choice.message.content = ""
+        empty_response = MagicMock()
+        empty_response.choices = [empty_choice]
+
+        good_choice = MagicMock()
+        good_choice.message.content = (
+            '{"required_skills": [], "preferred_skills": [], "keywords": []}'
+        )
+        good_response = MagicMock()
+        good_response.choices = [good_choice]
+
+        router = MagicMock()
+        router.acompletion = AsyncMock(side_effect=[empty_response, good_response])
+        config = MagicMock()
+        config.provider = "openai"
+        config.reasoning_effort = "high"
+        mock_get_router.return_value = (router, config)
+
+        from app.llm import complete_json
+
+        result = await complete_json(
+            prompt="Extract keywords", schema_type="keywords", retries=2
+        )
+
+        assert result == {"required_skills": [], "preferred_skills": [], "keywords": []}
+        calls = router.acompletion.call_args_list
+        assert calls[0].kwargs["reasoning_effort"] == "high"
+        assert calls[1].kwargs["reasoning_effort"] == "high"
 
     @pytest.mark.asyncio
     @patch("app.llm.get_router")
