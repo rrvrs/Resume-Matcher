@@ -325,3 +325,99 @@ class TestCalculateKeywordMatch:
         pct = calculate_keyword_match(sample_resume, keywords)
         # "Go" is not in the sample resume as a standalone word
         assert pct == 0.0
+
+
+class TestPreserveDescriptionStyles:
+    """H-04: descriptionStyles must survive the keyword-injection pass.
+
+    inject_keywords returns the model's JSON verbatim after only a top-level
+    structure check, and it is the LAST writer on the improve path. When the
+    model drops descriptionStyles, ResumeData backfills every row to "bullet",
+    silently erasing the user's "plain" rows. Prompt instructions alone are not
+    a guarantee for positional metadata, so a local restore runs after.
+    """
+
+    def test_restores_styles_the_llm_dropped(self):
+        from app.services.refiner import _preserve_description_styles
+
+        original = {
+            "workExperience": [
+                {
+                    "description": ["Led migration", "Cut costs 40%"],
+                    "descriptionStyles": ["plain", "bullet"],
+                }
+            ]
+        }
+        improved = {
+            "workExperience": [
+                {"description": ["Led the platform migration", "Reduced costs by 40%"]}
+            ]
+        }
+
+        out = _preserve_description_styles(original, improved)
+
+        assert out["workExperience"][0]["descriptionStyles"] == ["plain", "bullet"]
+
+    def test_pads_when_the_llm_added_a_row(self):
+        from app.services.refiner import _preserve_description_styles
+
+        original = {
+            "workExperience": [
+                {"description": ["A"], "descriptionStyles": ["plain"]}
+            ]
+        }
+        improved = {"workExperience": [{"description": ["A improved", "B new"]}]}
+
+        out = _preserve_description_styles(original, improved)
+
+        assert out["workExperience"][0]["descriptionStyles"] == ["plain", "bullet"]
+
+    def test_trusts_a_correctly_aligned_list_from_the_model(self):
+        from app.services.refiner import _preserve_description_styles
+
+        original = {
+            "workExperience": [
+                {"description": ["A", "B"], "descriptionStyles": ["plain", "plain"]}
+            ]
+        }
+        improved = {
+            "workExperience": [
+                {"description": ["A", "B"], "descriptionStyles": ["bullet", "plain"]}
+            ]
+        }
+
+        out = _preserve_description_styles(original, improved)
+
+        # The model returned an aligned list; it is deliberate output, not loss.
+        assert out["workExperience"][0]["descriptionStyles"] == ["bullet", "plain"]
+
+    def test_covers_projects_and_custom_sections(self):
+        from app.services.refiner import _preserve_description_styles
+
+        original = {
+            "personalProjects": [
+                {"description": ["P1"], "descriptionStyles": ["plain"]}
+            ],
+            "customSections": [
+                {
+                    "items": [
+                        {"description": ["C1"], "descriptionStyles": ["plain"]}
+                    ]
+                }
+            ],
+        }
+        improved = {
+            "personalProjects": [{"description": ["P1 reworded"]}],
+            "customSections": [{"items": [{"description": ["C1 reworded"]}]}],
+        }
+
+        out = _preserve_description_styles(original, improved)
+
+        assert out["personalProjects"][0]["descriptionStyles"] == ["plain"]
+        assert out["customSections"][0]["items"][0]["descriptionStyles"] == ["plain"]
+
+    def test_keyword_injection_prompt_carries_the_preserve_rule(self):
+        """The local net is defence-in-depth; the prompt should still ask."""
+        from app.prompts.refinement import KEYWORD_INJECTION_PROMPT
+
+        assert "descriptionStyles" in KEYWORD_INJECTION_PROMPT
