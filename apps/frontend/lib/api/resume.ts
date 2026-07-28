@@ -27,6 +27,7 @@ interface ProcessedResume {
     location?: string | null;
     years?: string;
     description?: string[];
+    descriptionStyles?: ('bullet' | 'plain')[];
   }>;
   education?: Array<{
     id: number;
@@ -43,6 +44,7 @@ interface ProcessedResume {
     github?: string | null;
     website?: string | null;
     description?: string[];
+    descriptionStyles?: ('bullet' | 'plain')[];
   }>;
   additional?: {
     technicalSkills?: string[];

@@ -292,7 +292,8 @@
         "descriptionPoints": "Pontos de Descrição"
       },
       "actions": {
-        "addPoint": "Adicionar Ponto"
+        "addPoint": "Adicionar Ponto",
+        "togglePointStyle": "Alternar marcador"
       },
       "placeholders": {
         "title": "Título",
@@ -732,6 +733,7 @@
     "errors": {
       "unableToConnectBackend": "Não foi possível alcançar o servidor. Verifique se ele está rodando.",
       "apiKeyRequired": "Chave de API é necessária para o provedor selecionado.",
+      "baseUrlRequired": "{provider} requer uma URL base.",
       "unknownProvider": "Provedor desconhecido retornado do backend: {provider}",
       "unableToSaveConfiguration": "Não foi possível salvar a configuração",
       "failedToClearApiKeys": "Falha ao limpar chaves de API. Por favor, tente novamente.",
