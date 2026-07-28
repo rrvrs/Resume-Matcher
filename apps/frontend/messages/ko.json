@@ -689,6 +689,8 @@
       "baseUrlLabel": "기본 URL (선택 사항)",
       "baseUrlPlaceholder": "예: https://api.openai.com/v1",
       "baseUrlDescription": "프록시/어그리게이터 엔드포인트를 사용하려면 API 기본 URL을 재정의하세요. 제공업체 기본값을 사용하려면 비워두세요.",
+      "azureBaseUrlLabel": "Azure AI Foundry 엔드포인트",
+      "azureBaseUrlDescription": "Foundry에서 엔드포인트를 붙여넣으세요. GPT 배포는 서비스 루트 또는 /openai/v1/responses를, Azure AI Inference 모델은 /models 엔드포인트를 사용할 수 있습니다.",
       "ollamaServerUrl": "Ollama 서버 URL",
       "ollamaServerUrlPlaceholder": "http://localhost:11434",
       "reasoningEffortLabel": "추론 강도",

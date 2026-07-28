@@ -144,9 +144,18 @@ export const PROVIDER_INFO: Record<
     defaultModel: string;
     requiresKey: boolean;
     requiresBaseUrl?: boolean;
-    baseUrlLabel?: string;
+    /**
+     * Base URL this provider owns. Used both to seed the field on switch-in
+     * and to decide whether to clear it on switch-out, so a previous
+     * provider's endpoint can't be persisted against the next one.
+     */
+    defaultBaseUrl?: string;
+    /**
+     * i18n key suffix under `settings.llmConfiguration.` for provider-specific
+     * base-URL copy. The example URL stays a literal in baseUrlPlaceholder.
+     */
+    baseUrlI18nKey?: string;
     baseUrlPlaceholder?: string;
-    baseUrlDescription?: string;
   }
 > = {
   openai: { name: 'OpenAI', defaultModel: 'gpt-5-nano-2025-08-07', requiresKey: true },
@@ -157,16 +166,15 @@ export const PROVIDER_INFO: Record<
     name: 'OpenAI-Compatible (Local)',
     defaultModel: 'custom-model',
     requiresKey: false,
+    defaultBaseUrl: 'http://localhost:8080/v1',
   },
   azure_foundry: {
     name: 'Azure AI Foundry',
     defaultModel: 'mistral-large-latest',
     requiresKey: true,
     requiresBaseUrl: true,
-    baseUrlLabel: 'Azure AI Foundry endpoint',
+    baseUrlI18nKey: 'azure',
     baseUrlPlaceholder: 'https://<resource>.services.ai.azure.com/openai/v1/responses',
-    baseUrlDescription:
-      'Paste the endpoint from Foundry. GPT deployments can use the service root or /openai/v1/responses; Azure AI Inference models can use the /models endpoint.',
   },
   anthropic: { name: 'Anthropic', defaultModel: 'claude-haiku-4-5-20251001', requiresKey: true },
   openrouter: {
@@ -177,7 +185,12 @@ export const PROVIDER_INFO: Record<
   gemini: { name: 'Google Gemini', defaultModel: 'gemini-3-flash-preview', requiresKey: true },
   deepseek: { name: 'DeepSeek', defaultModel: 'deepseek-chat', requiresKey: true },
   groq: { name: 'Groq', defaultModel: 'llama-3.3-70b-versatile', requiresKey: true },
-  ollama: { name: 'Ollama (Local)', defaultModel: 'gemma3:4b', requiresKey: false },
+  ollama: {
+    name: 'Ollama (Local)',
+    defaultModel: 'gemma3:4b',
+    requiresKey: false,
+    defaultBaseUrl: 'http://localhost:11434',
+  },
 };
 
 // Feature configuration types

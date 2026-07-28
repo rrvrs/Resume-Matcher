@@ -383,17 +383,19 @@ export default function SettingsPage() {
 
   // Handle provider change
   const handleProviderChange = (newProvider: LLMProvider) => {
+    const prevInfo = PROVIDER_INFO[provider];
+    const nextInfo = PROVIDER_INFO[newProvider];
     setProvider(newProvider);
-    setModel(PROVIDER_INFO[newProvider].defaultModel);
+    setModel(nextInfo.defaultModel);
 
-    if (newProvider === 'azure_foundry' && provider !== 'azure_foundry') {
-      setApiBase('');
-    } else if (newProvider === 'ollama' && !apiBase.trim()) {
-      setApiBase('http://localhost:11434');
-    }
-    if (newProvider === 'openai_compatible' && !apiBase.trim()) {
-      // llama.cpp default; user can override for vLLM / LM Studio / etc.
-      setApiBase('http://localhost:8080/v1');
+    // H-09: only the inbound direction used to be handled, so switching AWAY
+    // from a provider that owns a base URL left it in the field and handleSave
+    // persisted it — e.g. Azure -> Anthropic routed every Claude call at the
+    // Azure host with an opaque connection error.
+    if (newProvider !== provider && (prevInfo.requiresBaseUrl || prevInfo.defaultBaseUrl)) {
+      setApiBase(nextInfo.defaultBaseUrl ?? '');
+    } else if (nextInfo.defaultBaseUrl && !apiBase.trim()) {
+      setApiBase(nextInfo.defaultBaseUrl);
     }
 
     // Clear the key input on switch, but drive the "has stored key" hint from
@@ -654,11 +656,18 @@ export default function SettingsPage() {
 
   const requiresApiKey = providerInfo.requiresKey ?? true;
   const requiresApiBase = providerInfo.requiresBaseUrl ?? false;
-  const baseUrlLabel = providerInfo.baseUrlLabel ?? t('settings.llmConfiguration.baseUrlLabel');
+  // M-04: provider-specific base-URL copy comes from the message catalogs, not
+  // English literals in PROVIDER_INFO — otherwise this whole block reverted to
+  // English inside an otherwise fully-translated settings page.
+  const baseUrlKey = providerInfo.baseUrlI18nKey;
+  const baseUrlLabel = baseUrlKey
+    ? t(`settings.llmConfiguration.${baseUrlKey}BaseUrlLabel`)
+    : t('settings.llmConfiguration.baseUrlLabel');
   const baseUrlPlaceholder =
     providerInfo.baseUrlPlaceholder ?? t('settings.llmConfiguration.baseUrlPlaceholder');
-  const baseUrlDescription =
-    providerInfo.baseUrlDescription ?? t('settings.llmConfiguration.baseUrlDescription');
+  const baseUrlDescription = baseUrlKey
+    ? t(`settings.llmConfiguration.${baseUrlKey}BaseUrlDescription`)
+    : t('settings.llmConfiguration.baseUrlDescription');
 
   return (
     <div className="flex flex-col items-center justify-start p-6 md:p-12 min-h-screen overflow-y-auto">

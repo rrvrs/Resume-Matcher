@@ -59,6 +59,7 @@ import {
   getResumeDraftStorageKey,
   LEGACY_RESUME_DRAFT_STORAGE_KEY,
   parseResumeDraft,
+  safeStorage,
   shouldPromptForDraftRestore,
   type ResumeDraftEnvelope,
 } from '@/lib/utils/resume-draft-storage';
@@ -118,7 +119,7 @@ const withStorageKey = (
 const readStoredResumeDraft = (resumeId: string | null): StoredResumeDraft | null => {
   const scopedKey = getResumeDraftStorageKey(resumeId);
   const scopedDraft = withStorageKey(
-    parseResumeDraft(localStorage.getItem(scopedKey), resumeId),
+    parseResumeDraft(safeStorage.get(scopedKey), resumeId),
     scopedKey
   );
   if (scopedDraft) {
@@ -126,7 +127,7 @@ const readStoredResumeDraft = (resumeId: string | null): StoredResumeDraft | nul
   }
 
   const legacyDraft = withStorageKey(
-    parseResumeDraft(localStorage.getItem(LEGACY_RESUME_DRAFT_STORAGE_KEY), resumeId, Date.now(), {
+    parseResumeDraft(safeStorage.get(LEGACY_RESUME_DRAFT_STORAGE_KEY), resumeId, Date.now(), {
       allowLegacyPlainData: !resumeId,
     }),
     LEGACY_RESUME_DRAFT_STORAGE_KEY
@@ -136,7 +137,7 @@ const readStoredResumeDraft = (resumeId: string | null): StoredResumeDraft | nul
 };
 
 const writeStoredResumeDraft = (resumeId: string | null, data: ResumeData): void => {
-  localStorage.setItem(
+  safeStorage.set(
     getResumeDraftStorageKey(resumeId),
     JSON.stringify(buildResumeDraft(resumeId, data))
   );
@@ -146,11 +147,11 @@ const clearStoredResumeDraft = (resumeId: string | null): void => {
   // Only clear this resume's own scoped key. Removing the legacy key here too
   // would destroy a pre-upgrade draft for a *different* (new, unsaved) resume,
   // which the read path deliberately only surfaces when there is no resumeId.
-  localStorage.removeItem(getResumeDraftStorageKey(resumeId));
+  safeStorage.remove(getResumeDraftStorageKey(resumeId));
 };
 
 const clearResumeDraftStorageKey = (storageKey: string): void => {
-  localStorage.removeItem(storageKey);
+  safeStorage.remove(storageKey);
 };
 
 const ResumeBuilderContent = () => {
@@ -193,7 +194,7 @@ const ResumeBuilderContent = () => {
   const [templateSettings, setTemplateSettings] = useState<TemplateSettings>(() => {
     if (typeof window === 'undefined') return DEFAULT_TEMPLATE_SETTINGS;
     try {
-      const saved = localStorage.getItem(SETTINGS_STORAGE_KEY);
+      const saved = safeStorage.get(SETTINGS_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         return {
@@ -359,7 +360,7 @@ const ResumeBuilderContent = () => {
 
   // Save template settings to localStorage when they change
   useEffect(() => {
-    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(templateSettings));
+    safeStorage.set(SETTINGS_STORAGE_KEY, JSON.stringify(templateSettings));
   }, [templateSettings]);
 
   // Warn user before leaving with unsaved changes

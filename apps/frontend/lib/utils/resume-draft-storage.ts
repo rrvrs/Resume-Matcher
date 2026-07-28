@@ -103,3 +103,49 @@ export function shouldPromptForDraftRestore(
 ): boolean {
   return Boolean(draft && !isSameResumeData(draft.data, serverData));
 }
+
+/**
+ * localStorage wrapper that never throws (H-08).
+ *
+ * `localStorage` raises `SecurityError` when storage is blocked (enterprise
+ * policy, some embedded/iframe contexts) and `QuotaExceededError` on write.
+ * Unguarded access in the builder meant a blocked-storage user got a blank
+ * editor (throw during an effect -> error boundary), a resume that never
+ * loaded (rejected promise inside the loader, no error UI), or a silently
+ * dropped keystroke.
+ */
+export const safeStorage = {
+  get(key: string): string | null {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  set(key: string, value: string): boolean {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  remove(key: string): void {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      /* storage unavailable — nothing to clean up */
+    }
+  },
+  /** True when storage is readable and writable in this context. */
+  isAvailable(): boolean {
+    try {
+      const probe = '__rm_storage_probe__';
+      localStorage.setItem(probe, '1');
+      localStorage.removeItem(probe);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+};

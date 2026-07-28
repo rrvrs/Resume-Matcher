@@ -345,6 +345,9 @@ _SECRET_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"AIza[0-9A-Za-z_\-]{10,}"),
     # Generic Bearer tokens in an Authorization header line.
     re.compile(r"(?i)(Bearer\s+)[^\s\"']+"),
+    # Azure sends its key in a bare ``api-key:`` header and the value is a plain
+    # 32-84 char alphanumeric, so it matches none of the patterns above. M-08.
+    re.compile(r"(?i)(api[-_]?key[\"'\s:=]+)[^\s\"',}]+"),
 )
 
 

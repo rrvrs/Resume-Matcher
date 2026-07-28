@@ -682,3 +682,25 @@ class TestCompleteDynamicTimeout:
         mock_calc_timeout.assert_called_once_with("completion", 8192, "deepseek")
         router.acompletion.assert_awaited_once()
         assert router.acompletion.call_args.kwargs["timeout"] == 180
+
+
+class TestScrubSecrets:
+    """M-08: the redaction patterns must cover the providers we support."""
+
+    def test_redacts_azure_style_api_key_header(self):
+        from app.llm import _scrub_secrets
+
+        leaked = "abcdEFGH1234567890abcdEFGH1234567890"
+        text = f"AuthenticationError: request failed (api-key: {leaked})"
+
+        out = _scrub_secrets(text)
+
+        assert leaked not in out
+        assert "<redacted>" in out
+
+    def test_still_redacts_the_existing_patterns(self):
+        from app.llm import _scrub_secrets
+
+        assert "sk-abcd1234efgh5678" not in _scrub_secrets("key sk-abcd1234efgh5678 failed")
+        assert "AIzaSyABCDEFGHIJ" not in _scrub_secrets("key AIzaSyABCDEFGHIJ failed")
+        assert "tok_secret" not in _scrub_secrets("Authorization: Bearer tok_secret")

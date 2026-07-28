@@ -689,6 +689,8 @@
       "baseUrlLabel": "URL de base (optionnelle)",
       "baseUrlPlaceholder": "ex. https://api.openai.com/v1",
       "baseUrlDescription": "Remplacez l'URL de base de l'API pour utiliser un proxy/agrégateur. Laissez vide pour utiliser la valeur par défaut du fournisseur.",
+      "azureBaseUrlLabel": "Point de terminaison Azure AI Foundry",
+      "azureBaseUrlDescription": "Collez le point de terminaison depuis Foundry. Les déploiements GPT peuvent utiliser la racine du service ou /openai/v1/responses ; les modèles Azure AI Inference peuvent utiliser le point de terminaison /models.",
       "ollamaServerUrl": "URL du serveur Ollama",
       "ollamaServerUrlPlaceholder": "http://localhost:11434",
       "reasoningEffortLabel": "Effort de raisonnement",

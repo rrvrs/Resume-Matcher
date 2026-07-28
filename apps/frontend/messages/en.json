@@ -689,6 +689,8 @@
       "baseUrlLabel": "Base URL (optional)",
       "baseUrlPlaceholder": "e.g. https://api.openai.com/v1",
       "baseUrlDescription": "Override the API base URL to use a proxy/aggregator endpoint. Leave blank to use provider default.",
+      "azureBaseUrlLabel": "Azure AI Foundry endpoint",
+      "azureBaseUrlDescription": "Paste the endpoint from Foundry. GPT deployments can use the service root or /openai/v1/responses; Azure AI Inference models can use the /models endpoint.",
       "ollamaServerUrl": "Ollama Server URL",
       "ollamaServerUrlPlaceholder": "http://localhost:11434",
       "reasoningEffortLabel": "Reasoning effort",
