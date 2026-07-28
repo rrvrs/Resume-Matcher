@@ -328,6 +328,6 @@ class TestUploadResume:
             )
 
         assert resp.status_code == 422
-        assert "Failed to extract text from document" in resp.json()["detail"]
+        assert "Could not extract text from the uploaded file" in resp.json()["detail"]
         mock_db.create_resume_atomic_master.assert_not_called()
         mock_parse_resume_to_json.assert_not_called()

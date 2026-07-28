@@ -606,7 +606,7 @@
       "apiKeyError": "Votre clé API ne fonctionne pas. Vérifiez-la dans les paramètres.",
       "rateLimit": "Limite de débit atteinte. Attendez environ une minute et réessayez.",
       "failedToGenerate": "Impossible de générer le CV. Vérifiez votre clé API dans les paramètres, puis réessayez.",
-      "timeout": "La requête a expiré. Veuillez réessayer avec une fiche de poste plus courte ou vérifiez votre connexion.",
+      "timeout": "L'aperçu du CV a expiré après {minutes} minutes. Réessayez avec une fiche de poste plus courte ou une consigne plus simple.",
       "failedToPreview": "Impossible de prévisualiser le CV. Vérifiez votre clé API dans les paramètres, puis réessayez.",
       "failedToConfirm": "Impossible d'appliquer les modifications. Veuillez réessayer."
     }

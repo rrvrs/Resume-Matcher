@@ -14,6 +14,7 @@ import {
   confirmImproveResume,
 } from '@/lib/api/resume';
 import { fetchPromptConfig, type PromptOption } from '@/lib/api/config';
+import { DEFAULT_TIMEOUT_MS } from '@/lib/api/client';
 import { Dropdown } from '@/components/ui/dropdown';
 import { useStatusCache } from '@/lib/context/status-cache';
 import { Loader2, ArrowLeft, AlertTriangle, Settings } from 'lucide-react';
@@ -148,7 +149,12 @@ export default function TailorPage() {
       normalized.includes('aborterror') ||
       errorMessage.includes('504')
     ) {
-      return t('tailor.errors.timeout');
+      // Report the timeout the app is actually configured with, not a literal.
+      // DEFAULT_TIMEOUT_MS is driven by NEXT_PUBLIC_REQUEST_TIMEOUT_MS and is
+      // deliberately shared with the backend and the Next proxy.
+      return t('tailor.errors.timeout', {
+        minutes: Math.round(DEFAULT_TIMEOUT_MS / 60_000),
+      });
     }
 
     return t('tailor.errors.failedToPreview');
