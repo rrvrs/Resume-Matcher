@@ -162,17 +162,15 @@ async def update_llm_config(
     if resolved_provider in PROVIDERS_REQUIRING_BASE_URL and not (
         stored.get("api_base") or settings.llm_api_base
     ):
-        # Structured detail, matching update_feature_prompts below, so the UI
-        # can attach the error to the field instead of rendering a bare string.
+        # Structured detail using the same {code, field, missing} shape as
+        # update_feature_prompts below, so the UI has one schema to read for
+        # every validation error out of this router.
         raise HTTPException(
             status_code=422,
             detail={
                 "code": "missing_base_url",
                 "field": "api_base",
-                "provider": resolved_provider,
-                "message": (
-                    f"Provider '{resolved_provider}' requires a Base URL (api_base)."
-                ),
+                "missing": ["api_base"],
             },
         )
     raw_re = stored.get("reasoning_effort", settings.reasoning_effort)

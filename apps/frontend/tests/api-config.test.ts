@@ -5,6 +5,7 @@ import {
   fetchFeatureConfig,
   updateFeatureConfig,
   updateFeaturePrompts,
+  updateLlmConfig,
   type LLMProvider,
 } from '@/lib/api/config';
 
@@ -138,5 +139,35 @@ describe('feature config API', () => {
 
     const [, init] = fetchMock.mock.calls[0];
     expect(JSON.parse(init.body as string)).toEqual({ enable_interview_prep: true });
+  });
+});
+
+describe('updateLlmConfig error surfacing', () => {
+  it('serializes a structured 422 detail instead of rendering [object Object]', async () => {
+    const detail = { code: 'missing_base_url', field: 'api_base', missing: ['api_base'] };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ detail }), { status: 422 }))
+    );
+
+    await expect(updateLlmConfig({ provider: 'azure_foundry' })).rejects.toThrow(
+      /missing_base_url/
+    );
+    await expect(updateLlmConfig({ provider: 'azure_foundry' })).rejects.not.toThrow(
+      /\[object Object\]/
+    );
+
+    vi.unstubAllGlobals();
+  });
+
+  it('still passes a plain string detail through unchanged', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ detail: 'plain failure' }), { status: 400 }))
+    );
+
+    await expect(updateLlmConfig({ provider: 'openai' })).rejects.toThrow('plain failure');
+
+    vi.unstubAllGlobals();
   });
 });

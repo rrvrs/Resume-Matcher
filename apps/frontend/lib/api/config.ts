@@ -90,8 +90,20 @@ export async function updateLlmConfig(config: LLMConfigUpdate): Promise<LLMConfi
   });
 
   if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.detail || `Failed to update LLM config (status ${res.status}).`);
+    const data = (await res.json().catch(() => ({}))) as { detail?: unknown };
+    // FastAPI returns `detail` as a string OR a structured object (this
+    // endpoint now emits {code, field, missing} for a missing Base URL).
+    // Passing an object straight to `new Error()` renders "[object Object]",
+    // so serialize explicitly — same treatment as updateFeaturePrompts.
+    let message: string;
+    if (typeof data.detail === 'string') {
+      message = data.detail;
+    } else if (data.detail) {
+      message = JSON.stringify(data.detail);
+    } else {
+      message = `Failed to update LLM config (status ${res.status}).`;
+    }
+    throw new Error(message);
   }
 
   return res.json();

@@ -101,16 +101,16 @@ Enforced in three places:
 
 | Layer | File | Behaviour |
 |---|---|---|
-| Editor | `components/builder/forms/{experience,projects,generic-item}-form.tsx` | `alignDescriptionStyles()` before every splice |
-| Client normalize | `lib/utils/resume-normalization.ts` | filters both arrays in lockstep |
-| Server | `app/schemas/models.py` `_align_description_styles` | truncates/pads by index, defaults to `"bullet"` |
+| Editor | `apps/frontend/components/builder/forms/{experience,projects,generic-item}-form.tsx` | `alignDescriptionStyles()` before every splice |
+| Client normalize | `apps/frontend/lib/utils/resume-normalization.ts` | filters both arrays in lockstep |
+| Server | `apps/backend/app/schemas/models.py` `_align_description_styles` | truncates/pads by index, defaults to `"bullet"` |
 
 The server aligns **by index**, so it cannot detect a desync — it can only
 guarantee length. Correctness has to be preserved upstream.
 
 ### Models that carry it
 
-`Experience`, `Project`, `CustomSectionItem` (`app/schemas/models.py`). Rides
+`Experience`, `Project`, `CustomSectionItem` (`apps/backend/app/schemas/models.py`). Rides
 inside the existing `processed_data` JSON column — **no migration needed**.
 
 `Education.description` is a scalar `str | None`, so it has no styles array.
@@ -119,21 +119,21 @@ inside the existing `processed_data` JSON column — **no migration needed**.
 
 Four prompts instruct the model to keep the arrays aligned:
 
-- `app/prompts/templates.py` — the three improve variants
-- `app/prompts/refinement.py` — `KEYWORD_INJECTION_PROMPT`
+- `apps/backend/app/prompts/templates.py` — the three improve variants
+- `apps/backend/app/prompts/refinement.py` — `KEYWORD_INJECTION_PROMPT`
 
 A prompt is **not** a guarantee for positional metadata. `inject_keywords` is
-the last writer on the improve path, so `refiner._preserve_description_styles()`
+the last writer on the improve path, so `apps/backend/app/services/refiner.py::_preserve_description_styles()`
 restores the field locally after it — matching the defence-in-depth pattern
 already used for dates, skills, `personalInfo` and custom sections.
 
 ### Rendering
 
 All seven templates render rows through
-`components/resume/description-list.tsx`, which omits the marker span when the
+`apps/frontend/components/resume/description-list.tsx`, which omits the marker span when the
 style is `"plain"`. The marker is `aria-hidden="true"`. The JD-match preview
-(`components/builder/highlighted-resume-view.tsx`) applies the same rule so the
+(`apps/frontend/components/builder/highlighted-resume-view.tsx`) applies the same rule so the
 builder does not contradict the PDF.
 
-Coverage: `tests/template-description-styles.test.tsx` asserts marker presence
-per template; `tests/resume-normalization.test.ts` pins the lockstep filter.
+Coverage: `apps/frontend/tests/template-description-styles.test.tsx` asserts marker presence
+per template; `apps/frontend/tests/resume-normalization.test.ts` pins the lockstep filter.

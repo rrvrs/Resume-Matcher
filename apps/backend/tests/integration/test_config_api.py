@@ -538,9 +538,11 @@ class TestRequiresBaseUrlValidation:
         detail = resp.json()["detail"]
         # Structured, like the other validators in this router — the UI needs
         # the field name to attach the error, not a bare sentence.
+        # Same {code, field, missing} shape as update_feature_prompts, so the
+        # UI has one schema to read across this router's validation errors.
         assert detail["code"] == "missing_base_url"
         assert detail["field"] == "api_base"
-        assert detail["provider"] == "azure_foundry"
+        assert detail["missing"] == ["api_base"]
 
     async def test_azure_foundry_with_base_url_is_accepted(self, client):
         async with client:

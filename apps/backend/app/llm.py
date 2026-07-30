@@ -144,8 +144,22 @@ def _normalize_api_base(provider: str, api_base: str | None, model: str | None =
         parsed = urlsplit(base)
         # L-02: rebuild from hostname/port rather than netloc so any userinfo
         # in a pasted URL (https://user:secret@host/...) is not carried forward.
+        #
+        # `parsed.port` is a property that RAISES ValueError for a non-numeric
+        # or out-of-range port ("...:99999", "...:abc"). This function runs
+        # inside _build_router and check_llm_health, so an unhandled raise here
+        # would surface as a crash before any LLM error handling. Fall back to
+        # the untouched base — a malformed endpoint should fail as a connection
+        # error from the provider, not as a ValueError from URL parsing.
+        try:
+            port = parsed.port
+        except ValueError:
+            logging.warning("Invalid port in api_base; leaving it unnormalized")
+            return base
         host = parsed.hostname or ""
-        netloc = f"{host}:{parsed.port}" if parsed.port else host
+        if not host:
+            return base
+        netloc = f"{host}:{port}" if port else host
         return f"{parsed.scheme}://{netloc}"
 
     # OpenAI / OpenAI-compatible: preserve the URL as-is. The OpenAI client

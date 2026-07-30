@@ -438,6 +438,32 @@ class TestAzureFoundryTransport:
             == "https://my-resource.openai.azure.com/openai/v1"
         )
 
+    async def test_malformed_port_does_not_raise(self):
+        """`urlsplit().port` raises for a non-numeric or out-of-range port.
+
+        _normalize_api_base runs inside _build_router and check_llm_health, so
+        an unhandled raise here crashes before any LLM error handling. A bad
+        endpoint must fail as a provider connection error instead.
+        """
+        from app.llm import _normalize_api_base
+
+        for bad in (
+            "https://example.services.ai.azure.com:99999/openai/v1",
+            "https://example.services.ai.azure.com:abc/openai/v1",
+        ):
+            out = _normalize_api_base("azure_foundry", bad, "gpt-5-mini")
+            assert out == bad  # left unnormalized, but no exception
+
+    async def test_explicit_port_is_preserved(self):
+        from app.llm import _normalize_api_base
+
+        out = _normalize_api_base(
+            "azure_foundry",
+            "https://example.services.ai.azure.com:8443/openai/v1/responses",
+            "gpt-5-mini",
+        )
+        assert out == "https://example.services.ai.azure.com:8443"
+
     async def test_userinfo_is_stripped_from_normalized_base(self):
         """L-02: credentials pasted into the URL must not be carried forward."""
         from app.llm import _normalize_api_base
