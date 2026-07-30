@@ -82,7 +82,11 @@ function isResumeDraftEnvelope(value: unknown): value is ResumeDraftEnvelope {
   return (
     'data' in value &&
     'updatedAt' in value &&
-    typeof value.updatedAt === 'number' &&
+    // Number.isFinite, not `typeof === 'number'`: NaN and ±Infinity pass the
+    // typeof check, and NaN then defeats BOTH expiry comparisons (every
+    // comparison against NaN is false), so a malformed draft would be treated
+    // as permanently fresh.
+    Number.isFinite(value.updatedAt) &&
     isResumeDataShape(value.data)
   );
 }

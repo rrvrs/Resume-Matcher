@@ -203,3 +203,35 @@ describe('normalization robustness against malformed persisted data', () => {
     ).not.toThrow();
   });
 });
+
+describe('normalization robustness — element level', () => {
+  const malformed = (over: Record<string, unknown>): ResumeData =>
+    ({ ...baseResume, ...over }) as unknown as ResumeData;
+
+  it('drops null and primitive entries inside otherwise-valid arrays', () => {
+    // Container guards were not enough: a null element throws on property
+    // access inside normalizeDescriptionFields.
+    const out = normalizeResumeForSave(
+      malformed({
+        workExperience: [null, { id: 1, title: 'Engineer' }, 'nope', undefined],
+        personalProjects: [null, { id: 2, name: 'Proj' }],
+      })
+    );
+
+    expect(out.workExperience).toHaveLength(1);
+    expect(out.workExperience?.[0].title).toBe('Engineer');
+    expect(out.personalProjects).toHaveLength(1);
+  });
+
+  it('drops null entries inside a custom itemList', () => {
+    const out = normalizeResumeForSave(
+      malformed({
+        customSections: {
+          custom_1: { sectionType: 'itemList', items: [null, { id: 1, title: 'C' }] },
+        },
+      })
+    );
+
+    expect(out.customSections?.custom_1.items).toHaveLength(1);
+  });
+});

@@ -219,3 +219,22 @@ describe('draft clock skew', () => {
     expect(parseResumeDraft(slightlyAhead, 'abc-123', undefined, { now })).not.toBeNull();
   });
 });
+
+describe('draft timestamp validation', () => {
+  it('rejects a non-finite timestamp', () => {
+    // JSON.parse cannot produce NaN (it throws on the literal), but it DOES
+    // produce Infinity for an overflowing numeric literal. Both the TTL and
+    // skew comparisons already reject those; Number.isFinite in the shape
+    // check makes the invariant explicit rather than incidental.
+    const overflow = `{"resumeId":"abc-123","updatedAt":1e400,"data":${JSON.stringify(baseResume)}}`;
+    expect(parseResumeDraft(overflow, 'abc-123')).toBeNull();
+
+    const negOverflow = `{"resumeId":"abc-123","updatedAt":-1e400,"data":${JSON.stringify(baseResume)}}`;
+    expect(parseResumeDraft(negOverflow, 'abc-123')).toBeNull();
+  });
+
+  it('rejects a non-numeric timestamp', () => {
+    const stringy = `{"resumeId":"abc-123","updatedAt":"yesterday","data":${JSON.stringify(baseResume)}}`;
+    expect(parseResumeDraft(stringy, 'abc-123')).toBeNull();
+  });
+});

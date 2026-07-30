@@ -15,7 +15,9 @@ const isMeaningfulText = (value: unknown): value is string => {
   return typeof value === 'string' && value.trim().length > 0;
 };
 
-const normalizeStringList = (items?: string[]): string[] | undefined => {
+// Param is `unknown`, not `string[] | undefined`: this runs against persisted
+// data that TypeScript never validated, and the narrow type hid that.
+const normalizeStringList = (items?: unknown): string[] | undefined => {
   // Only `undefined` means "field absent" — preserve it so the key stays out
   // of the payload. Every other non-array (notably `null` from malformed
   // persisted data) is coerced to []; the old `if (!items) return items`
@@ -26,7 +28,15 @@ const normalizeStringList = (items?: string[]): string[] | undefined => {
   return items.filter(isMeaningfulText).map((item) => item.trim());
 };
 
+const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
 const normalizeDescriptionFields = <T extends DescribedItem>(item: T): T => {
+  // A null element inside an otherwise-valid array throws on property access.
+  // Guarding the container was not enough — persisted arrays can hold nulls.
+  if (!isObjectRecord(item)) {
+    return item;
+  }
   const descriptions = Array.isArray(item.description) ? item.description : [];
   // descriptionStyles is positional — styles[i] belongs to description[i]. It
   // must be filtered in lockstep, or dropping a blank description silently
@@ -94,6 +104,7 @@ const normalizeCustomSection = (section: CustomSection): CustomSection => {
       // Array.isArray, not `|| []` — a malformed truthy non-array (an object
       // from hand-edited storage) reaches .map and throws.
       items: (Array.isArray(section.items) ? section.items : [])
+        .filter(isObjectRecord)
         .map(normalizeDescriptionFields)
         .filter(hasCustomItemContent),
     };
@@ -122,9 +133,11 @@ export const normalizeResumeForSave = (resume: ResumeData): ResumeData => {
   return {
     ...resume,
     workExperience: (Array.isArray(resume.workExperience) ? resume.workExperience : [])
+      .filter(isObjectRecord)
       .map(normalizeDescriptionFields)
       .filter(hasExperienceContent),
     personalProjects: (Array.isArray(resume.personalProjects) ? resume.personalProjects : [])
+      .filter(isObjectRecord)
       .map(normalizeDescriptionFields)
       .filter(hasProjectContent),
     additional: resume.additional
