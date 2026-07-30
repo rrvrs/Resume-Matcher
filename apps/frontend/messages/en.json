@@ -107,6 +107,26 @@
     "previewMode": "Preview Mode",
     "createAndPreview": "Create & Preview",
     "unsavedDraft": "Unsaved Draft",
+    "autoSave": {
+      "saving": "Syncing...",
+      "saved": "All changes saved",
+      "localDraft": "Draft saved locally",
+      "saveNow": "Save now",
+      "retrySave": "Retry save",
+      "savedButton": "Saved"
+    },
+    "draftRecovery": {
+      "title": "Restore Local Draft?",
+      "description": "A local browser draft is different from the saved server copy. Restore it to continue editing, or use the server copy and discard the local draft.",
+      "restoreDraft": "Restore Draft",
+      "useServer": "Use Server Copy"
+    },
+    "leaveWithLocalDraft": {
+      "title": "Leave Without Syncing?",
+      "description": "The latest edits could not be synced to the server yet. A local browser draft is still saved, but it may not be available from another browser or device.",
+      "leave": "Leave Dashboard",
+      "stay": "Keep Editing"
+    },
     "personalInfo": "Personal Information",
     "summary": "Summary",
     "experience": "Experience",
@@ -454,6 +474,8 @@
     "alerts": {
       "saveNotAvailable": "Save is only available when editing an existing resume.",
       "saveFailed": "Failed to save resume. Please try again.",
+      "autoSaveFailed": "Couldn't sync. Draft is safe locally.",
+      "loadFailed": "Couldn't load this resume from the server. Refresh to try again — editing is disabled so your saved copy isn't overwritten.",
       "coverLetterSaveSuccess": "Cover letter saved",
       "outreachSaveSuccess": "Outreach message saved",
       "downloadSuccess": "Resume downloaded",
@@ -584,8 +606,8 @@
       "jobDescriptionTooShort": "Job description is too short. Add more detail and try again.",
       "apiKeyError": "Your API key isn't working. Check it in Settings.",
       "rateLimit": "Rate limit reached. Wait about a minute and try again.",
+      "timeout": "Resume preview timed out after {minutes} minutes. Try again with a shorter job description or a simpler prompt.",
       "failedToGenerate": "Couldn't generate the resume. Check your API key in Settings, then try again.",
-      "timeout": "The request timed out. Please try again with a shorter job description or check your connection.",
       "failedToPreview": "Couldn't preview the resume. Check your API key in Settings, then try again.",
       "failedToConfirm": "Couldn't apply the changes. Please try again."
     }
@@ -667,6 +689,8 @@
       "baseUrlLabel": "Base URL (optional)",
       "baseUrlPlaceholder": "e.g. https://api.openai.com/v1",
       "baseUrlDescription": "Override the API base URL to use a proxy/aggregator endpoint. Leave blank to use provider default.",
+      "azureBaseUrlLabel": "Azure AI Foundry endpoint",
+      "azureBaseUrlDescription": "Paste the endpoint from Foundry. GPT deployments can use the service root or /openai/v1/responses; Azure AI Inference models can use the /models endpoint.",
       "ollamaServerUrl": "Ollama Server URL",
       "ollamaServerUrlPlaceholder": "http://localhost:11434",
       "reasoningEffortLabel": "Reasoning effort",

@@ -107,6 +107,26 @@
     "previewMode": "Modo Visualização",
     "createAndPreview": "Criar e Visualizar",
     "unsavedDraft": "Rascunho Não Salvo",
+    "autoSave": {
+      "saving": "Sincronizando...",
+      "saved": "Todas as alterações salvas",
+      "localDraft": "Rascunho salvo localmente",
+      "saveNow": "Salvar agora",
+      "retrySave": "Tentar salvar novamente",
+      "savedButton": "Salvo"
+    },
+    "draftRecovery": {
+      "title": "Restaurar rascunho local?",
+      "description": "Um rascunho local do navegador é diferente da cópia salva no servidor. Restaure-o para continuar editando ou use a cópia do servidor e descarte o rascunho local.",
+      "restoreDraft": "Restaurar rascunho",
+      "useServer": "Usar cópia do servidor"
+    },
+    "leaveWithLocalDraft": {
+      "title": "Sair sem sincronizar?",
+      "description": "As alterações mais recentes ainda não puderam ser sincronizadas com o servidor. Um rascunho local continua salvo neste navegador, mas pode não estar disponível em outro navegador ou dispositivo.",
+      "leave": "Ir para o painel",
+      "stay": "Continuar editando"
+    },
     "personalInfo": "Informações Pessoais",
     "summary": "Resumo",
     "experience": "Experiência",
@@ -454,6 +474,8 @@
     "alerts": {
       "saveNotAvailable": "Salvar só está disponível ao editar um currículo existente.",
       "saveFailed": "Falha ao salvar currículo. Por favor, tente novamente.",
+      "autoSaveFailed": "Não foi possível sincronizar. O rascunho está seguro localmente.",
+      "loadFailed": "Não foi possível carregar este currículo do servidor. Atualize para tentar novamente; a edição está desativada para não sobrescrever sua cópia salva.",
       "coverLetterSaveSuccess": "Carta de apresentação salva",
       "outreachSaveSuccess": "Mensagem de contato salva",
       "downloadSuccess": "Currículo baixado",
@@ -584,8 +606,8 @@
       "jobDescriptionTooShort": "Descrição da vaga muito curta. Adicione mais detalhes e tente novamente.",
       "apiKeyError": "Sua chave de API não está funcionando. Verifique em Configurações.",
       "rateLimit": "Limite de requisições atingido. Aguarde cerca de um minuto e tente novamente.",
+      "timeout": "A prévia do currículo expirou após {minutes} minutos. Tente novamente com uma descrição de vaga mais curta ou um prompt mais simples.",
       "failedToGenerate": "Não foi possível gerar o currículo. Verifique sua chave de API em Configurações e tente novamente.",
-      "timeout": "A solicitação expirou. Tente novamente com uma descrição de vaga mais curta ou verifique sua conexão.",
       "failedToPreview": "Não foi possível pré-visualizar o currículo. Verifique sua chave de API em Configurações e tente novamente.",
       "failedToConfirm": "Não foi possível aplicar as alterações. Tente novamente."
     }
@@ -667,6 +689,8 @@
       "baseUrlLabel": "URL Base (opcional)",
       "baseUrlPlaceholder": "Ex: https://api.openai.com/v1",
       "baseUrlDescription": "Sobrescreva a URL base da API para usar um proxy/agregador. Deixe em branco para usar o padrão do provedor.",
+      "azureBaseUrlLabel": "Endpoint do Azure AI Foundry",
+      "azureBaseUrlDescription": "Cole o endpoint do Foundry. Implantações GPT podem usar a raiz do serviço ou /openai/v1/responses; modelos do Azure AI Inference podem usar o endpoint /models.",
       "ollamaServerUrl": "URL do Servidor Ollama",
       "ollamaServerUrlPlaceholder": "http://localhost:11434",
       "reasoningEffortLabel": "Esforço de raciocínio",

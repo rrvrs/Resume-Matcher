@@ -467,7 +467,29 @@
       "outreachSaveFailed": "아웃리치 메시지 저장에 실패했습니다. 다시 시도해 주세요.",
       "coverLetterGenerateFailed": "자기소개서 생성에 실패했습니다: {error}",
       "outreachGenerateFailed": "아웃리치 메시지 생성에 실패했습니다: {error}",
-      "interviewPrepGenerateFailed": "면접 준비 자료 생성에 실패했습니다: {error}"
+      "interviewPrepGenerateFailed": "면접 준비 자료 생성에 실패했습니다: {error}",
+      "autoSaveFailed": "동기화하지 못했습니다. 초안은 로컬에 안전하게 저장되어 있습니다.",
+      "loadFailed": "서버에서 이 이력서를 불러오지 못했습니다. 새로고침하여 다시 시도해 주세요. 저장된 사본을 덮어쓰지 않도록 편집이 비활성화되었습니다."
+    },
+    "autoSave": {
+      "saving": "동기화 중...",
+      "saved": "모든 변경 사항이 저장되었습니다",
+      "localDraft": "초안이 로컬에 저장되었습니다",
+      "saveNow": "지금 저장",
+      "retrySave": "저장 다시 시도",
+      "savedButton": "저장됨"
+    },
+    "draftRecovery": {
+      "title": "로컬 초안을 복원할까요?",
+      "description": "브라우저에 저장된 로컬 초안이 서버에 저장된 사본과 다릅니다. 초안을 복원해 편집을 계속하거나, 서버 사본을 사용하고 로컬 초안을 삭제할 수 있습니다.",
+      "restoreDraft": "초안 복원",
+      "useServer": "서버 사본 사용"
+    },
+    "leaveWithLocalDraft": {
+      "title": "동기화하지 않고 나갈까요?",
+      "description": "최신 편집 내용을 아직 서버에 동기화하지 못했습니다. 로컬 초안은 이 브라우저에 저장되어 있지만 다른 브라우저나 기기에서는 사용하지 못할 수 있습니다.",
+      "leave": "대시보드로 이동",
+      "stay": "편집 계속하기"
     }
   },
   "enrichment": {
@@ -585,7 +607,7 @@
       "apiKeyError": "API 키가 작동하지 않습니다. 설정에서 확인하세요.",
       "rateLimit": "요청 한도에 도달했습니다. 약 1분 후 다시 시도해 주세요.",
       "failedToGenerate": "이력서를 생성할 수 없습니다. 설정에서 API 키를 확인한 후 다시 시도하세요.",
-      "timeout": "요청이 시간 초과되었습니다. 더 짧은 채용 공고로 다시 시도하거나 연결 상태를 확인해 주세요.",
+      "timeout": "이력서 미리보기가 {minutes}분 후에 시간 초과되었습니다. 더 짧은 채용 공고나 더 간단한 프롬프트로 다시 시도해 주세요.",
       "failedToPreview": "이력서를 미리 볼 수 없습니다. 설정에서 API 키를 확인한 후 다시 시도하세요.",
       "failedToConfirm": "변경 사항을 적용할 수 없습니다. 다시 시도해 주세요."
     }
@@ -667,6 +689,8 @@
       "baseUrlLabel": "기본 URL (선택 사항)",
       "baseUrlPlaceholder": "예: https://api.openai.com/v1",
       "baseUrlDescription": "프록시/어그리게이터 엔드포인트를 사용하려면 API 기본 URL을 재정의하세요. 제공업체 기본값을 사용하려면 비워두세요.",
+      "azureBaseUrlLabel": "Azure AI Foundry 엔드포인트",
+      "azureBaseUrlDescription": "Foundry에서 엔드포인트를 붙여넣으세요. GPT 배포는 서비스 루트 또는 /openai/v1/responses를, Azure AI Inference 모델은 /models 엔드포인트를 사용할 수 있습니다.",
       "ollamaServerUrl": "Ollama 서버 URL",
       "ollamaServerUrlPlaceholder": "http://localhost:11434",
       "reasoningEffortLabel": "추론 강도",

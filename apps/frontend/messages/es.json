@@ -107,6 +107,26 @@
     "previewMode": "Modo Vista Previa",
     "createAndPreview": "Crear y previsualizar",
     "unsavedDraft": "Borrador sin guardar",
+    "autoSave": {
+      "saving": "Sincronizando...",
+      "saved": "Todos los cambios guardados",
+      "localDraft": "Borrador guardado localmente",
+      "saveNow": "Guardar ahora",
+      "retrySave": "Reintentar guardado",
+      "savedButton": "Guardado"
+    },
+    "draftRecovery": {
+      "title": "¿Restaurar borrador local?",
+      "description": "Un borrador local del navegador es diferente de la copia guardada en el servidor. Restáuralo para seguir editando o usa la copia del servidor y descarta el borrador local.",
+      "restoreDraft": "Restaurar borrador",
+      "useServer": "Usar copia del servidor"
+    },
+    "leaveWithLocalDraft": {
+      "title": "¿Salir sin sincronizar?",
+      "description": "Los últimos cambios aún no pudieron sincronizarse con el servidor. El borrador local sigue guardado en este navegador, pero puede no estar disponible desde otro navegador o dispositivo.",
+      "leave": "Ir al panel",
+      "stay": "Seguir editando"
+    },
     "personalInfo": "Información Personal",
     "summary": "Resumen",
     "experience": "Experiencia",
@@ -454,6 +474,8 @@
     "alerts": {
       "saveNotAvailable": "Guardar solo está disponible al editar un currículum existente.",
       "saveFailed": "No se pudo guardar el currículum. Por favor, inténtalo de nuevo.",
+      "autoSaveFailed": "No se pudo sincronizar. El borrador está seguro localmente.",
+      "loadFailed": "No se pudo cargar este currículum desde el servidor. Actualiza para volver a intentarlo; la edición está desactivada para no sobrescribir tu copia guardada.",
       "coverLetterSaveSuccess": "Carta de presentación guardada",
       "outreachSaveSuccess": "Mensaje de contacto guardado",
       "downloadSuccess": "Currículum descargado",
@@ -584,8 +606,8 @@
       "jobDescriptionTooShort": "La descripción del trabajo es demasiado corta. Añade más detalles e inténtalo de nuevo.",
       "apiKeyError": "Tu clave API no funciona. Revísala en Configuración.",
       "rateLimit": "Se alcanzó el límite de tasa. Espera aproximadamente un minuto e inténtalo de nuevo.",
+      "timeout": "La vista previa del currículum agotó el tiempo de espera tras {minutes} minutos. Inténtalo de nuevo con una descripción del trabajo más corta o un prompt más simple.",
       "failedToGenerate": "No se pudo generar el currículum. Revisa tu clave API en Configuración e inténtalo de nuevo.",
-      "timeout": "La solicitud agotó el tiempo de espera. Inténtalo de nuevo con una descripción del trabajo más corta o comprueba tu conexión.",
       "failedToPreview": "No se pudo previsualizar el currículum. Revisa tu clave API en Configuración e inténtalo de nuevo.",
       "failedToConfirm": "No se pudieron aplicar los cambios. Inténtalo de nuevo."
     }
@@ -667,6 +689,8 @@
       "baseUrlLabel": "URL base (opcional)",
       "baseUrlPlaceholder": "p. ej. https://api.openai.com/v1",
       "baseUrlDescription": "Sobrescribe la URL base para usar un proxy/agregador. Déjalo en blanco para usar la URL predeterminada del proveedor.",
+      "azureBaseUrlLabel": "Endpoint de Azure AI Foundry",
+      "azureBaseUrlDescription": "Pega el endpoint de Foundry. Las implementaciones GPT pueden usar la raíz del servicio o /openai/v1/responses; los modelos de Azure AI Inference pueden usar el endpoint /models.",
       "ollamaServerUrl": "URL del servidor Ollama",
       "ollamaServerUrlPlaceholder": "http://localhost:11434",
       "reasoningEffortLabel": "Esfuerzo de razonamiento",

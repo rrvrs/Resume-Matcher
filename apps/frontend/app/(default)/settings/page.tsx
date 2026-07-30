@@ -62,6 +62,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/lib/context/language-context';
 import { useTranslations } from '@/lib/i18n';
+import { RESUME_DRAFT_STORAGE_PREFIX, safeStorage } from '@/lib/utils/resume-draft-storage';
 import type { SupportedLanguage } from '@/lib/api/config';
 import type { Locale } from '@/i18n/config';
 
@@ -382,17 +383,22 @@ export default function SettingsPage() {
 
   // Handle provider change
   const handleProviderChange = (newProvider: LLMProvider) => {
+    const nextInfo = PROVIDER_INFO[newProvider];
     setProvider(newProvider);
-    setModel(PROVIDER_INFO[newProvider].defaultModel);
+    setModel(nextInfo.defaultModel);
 
-    if (newProvider === 'azure_foundry' && provider !== 'azure_foundry') {
-      setApiBase('');
-    } else if (newProvider === 'ollama' && !apiBase.trim()) {
-      setApiBase('http://localhost:11434');
-    }
-    if (newProvider === 'openai_compatible' && !apiBase.trim()) {
-      // llama.cpp default; user can override for vLLM / LM Studio / etc.
-      setApiBase('http://localhost:8080/v1');
+    // H-09: the Base URL field is shared across providers, so an endpoint left
+    // over from the previous one used to be persisted against the next —
+    // e.g. Azure -> Anthropic routed every Claude call at the Azure host.
+    //
+    // Reset on EVERY actual switch and seed only the destination's own default.
+    // Keying off the previous provider's flags was not enough: a base URL typed
+    // manually under a provider that declares neither (openai, anthropic, ...)
+    // survived the switch and was saved as Azure's required endpoint.
+    if (newProvider !== provider) {
+      setApiBase(nextInfo.defaultBaseUrl ?? '');
+    } else if (nextInfo.defaultBaseUrl && !apiBase.trim()) {
+      setApiBase(nextInfo.defaultBaseUrl);
     }
 
     // Clear the key input on switch, but drive the "has stored key" hint from
@@ -611,12 +617,22 @@ export default function SettingsPage() {
     try {
       await resetDatabase();
 
-      // Clear all related localStorage keys
-      localStorage.removeItem('master_resume_id');
-      localStorage.removeItem('resume_builder_draft');
-      localStorage.removeItem('resume_builder_settings');
-      localStorage.removeItem('resume_matcher_content_language');
-      localStorage.removeItem('resume_matcher_ui_language');
+      // Clear all related localStorage keys. Routed through safeStorage so a
+      // context where storage throws (enterprise policy, iframe) cannot abort
+      // the reset flow *after* the server-side wipe has already succeeded.
+      safeStorage.remove('master_resume_id');
+      safeStorage.remove('resume_builder_draft');
+      try {
+        Object.keys(localStorage)
+          .filter((key) => key.startsWith(RESUME_DRAFT_STORAGE_PREFIX))
+          .forEach((key) => safeStorage.remove(key));
+      } catch {
+        // Enumerating localStorage can throw for the same reasons; the scoped
+        // drafts simply stay until their TTL expires.
+      }
+      safeStorage.remove('resume_builder_settings');
+      safeStorage.remove('resume_matcher_content_language');
+      safeStorage.remove('resume_matcher_ui_language');
 
       // Refresh status to show empty counts
       await refreshStatus();
@@ -650,11 +666,18 @@ export default function SettingsPage() {
 
   const requiresApiKey = providerInfo.requiresKey ?? true;
   const requiresApiBase = providerInfo.requiresBaseUrl ?? false;
-  const baseUrlLabel = providerInfo.baseUrlLabel ?? t('settings.llmConfiguration.baseUrlLabel');
+  // M-04: provider-specific base-URL copy comes from the message catalogs, not
+  // English literals in PROVIDER_INFO — otherwise this whole block reverted to
+  // English inside an otherwise fully-translated settings page.
+  const baseUrlKey = providerInfo.baseUrlI18nKey;
+  const baseUrlLabel = baseUrlKey
+    ? t(`settings.llmConfiguration.${baseUrlKey}BaseUrlLabel`)
+    : t('settings.llmConfiguration.baseUrlLabel');
   const baseUrlPlaceholder =
     providerInfo.baseUrlPlaceholder ?? t('settings.llmConfiguration.baseUrlPlaceholder');
-  const baseUrlDescription =
-    providerInfo.baseUrlDescription ?? t('settings.llmConfiguration.baseUrlDescription');
+  const baseUrlDescription = baseUrlKey
+    ? t(`settings.llmConfiguration.${baseUrlKey}BaseUrlDescription`)
+    : t('settings.llmConfiguration.baseUrlDescription');
 
   return (
     <div className="flex flex-col items-center justify-start p-6 md:p-12 min-h-screen overflow-y-auto">

@@ -107,6 +107,26 @@
     "previewMode": "预览模式",
     "createAndPreview": "创建与预览",
     "unsavedDraft": "未保存草稿",
+    "autoSave": {
+      "saving": "同步中...",
+      "saved": "所有更改已保存",
+      "localDraft": "草稿已在本地保存",
+      "saveNow": "立即保存",
+      "retrySave": "重试保存",
+      "savedButton": "已保存"
+    },
+    "draftRecovery": {
+      "title": "恢复本地草稿？",
+      "description": "浏览器中的本地草稿与服务器已保存版本不同。你可以恢复本地草稿继续编辑，或使用服务器版本并丢弃本地草稿。",
+      "restoreDraft": "恢复草稿",
+      "useServer": "使用服务器版本"
+    },
+    "leaveWithLocalDraft": {
+      "title": "未同步仍要离开？",
+      "description": "最新修改暂时无法同步到服务器。本地浏览器草稿仍已保存，但可能无法在其他浏览器或设备上使用。",
+      "leave": "离开到仪表盘",
+      "stay": "继续编辑"
+    },
     "personalInfo": "个人信息",
     "summary": "个人简介",
     "experience": "工作经历",
@@ -454,6 +474,8 @@
     "alerts": {
       "saveNotAvailable": "仅在编辑现有简历时可保存。",
       "saveFailed": "保存简历失败，请重试。",
+      "autoSaveFailed": "暂时无法同步，草稿已安全保存在本地。",
+      "loadFailed": "无法从服务器加载此简历。请刷新重试；编辑已禁用，以免覆盖已保存的副本。",
       "coverLetterSaveSuccess": "求职信已保存",
       "outreachSaveSuccess": "联系邮件已保存",
       "downloadSuccess": "简历已下载",
@@ -584,8 +606,8 @@
       "jobDescriptionTooShort": "职位描述过短。请添加更多细节后重试。",
       "apiKeyError": "您的 API 密钥无效。请在设置中检查。",
       "rateLimit": "已达到速率限制。请等待约一分钟后重试。",
+      "timeout": "简历预览在 {minutes} 分钟后超时。请缩短职位描述，或改用更简单的提示词后重试。",
       "failedToGenerate": "无法生成简历。请在设置中检查 API 密钥后重试。",
-      "timeout": "请求超时。请尝试使用更短的职位描述或检查网络连接后重试。",
       "failedToPreview": "无法预览简历。请在设置中检查 API 密钥后重试。",
       "failedToConfirm": "无法应用更改。请重试。"
     }
@@ -667,6 +689,8 @@
       "baseUrlLabel": "Base URL（可选）",
       "baseUrlPlaceholder": "例如 https://api.openai.com/v1",
       "baseUrlDescription": "可用于中转站/聚合站等自定义接口地址。不填写则使用提供商默认地址。",
+      "azureBaseUrlLabel": "Azure AI Foundry 终结点",
+      "azureBaseUrlDescription": "粘贴 Foundry 中的终结点。GPT 部署可使用服务根地址或 /openai/v1/responses；Azure AI Inference 模型可使用 /models 终结点。",
       "ollamaServerUrl": "Ollama 服务器地址",
       "ollamaServerUrlPlaceholder": "http://localhost:11434",
       "reasoningEffortLabel": "推理深度",

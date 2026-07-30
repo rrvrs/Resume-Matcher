@@ -92,9 +92,18 @@ def _azure_foundry_api_version(config: LLMConfig) -> str | None:
     `https://<resource>.services.ai.azure.com/openai/v1/responses`. LiteLLM
     expects the service root plus `api_version='v1'` for that API family.
     """
+    # M-01: the provider check must come first. An explicit api_version is an
+    # Azure concept; returning it for any provider leaks the value into
+    # litellm_params for Ollama, OpenAI-compatible servers and the rest.
+    if config.provider != "azure_foundry" or not config.api_base:
+        return None
     if config.api_version:
         return config.api_version
-    if config.provider != "azure_foundry" or not config.api_base:
+    # H-03: gate on exactly the same predicate _normalize_api_base uses. If the
+    # base URL is not rewritten to the service root but we still report v1,
+    # LiteLLM appends `/openai/v1/` to a path that already contains it and
+    # every call 404s on a URL this module built itself.
+    if not _is_azure_openai_foundry_endpoint(config.api_base, config.model):
         return None
     parsed = urlsplit(config.api_base.strip())
     path = parsed.path.rstrip("/")
@@ -103,7 +112,7 @@ def _azure_foundry_api_version(config: LLMConfig) -> str | None:
     return None
 
 
-def _normalize_api_base(provider: str, api_base: str | None) -> str | None:
+def _normalize_api_base(provider: str, api_base: str | None, model: str | None = None) -> str | None:
     """Normalize api_base for LiteLLM provider-specific expectations.
 
     When using proxies/aggregators, users often paste a base URL that already
@@ -128,9 +137,35 @@ def _normalize_api_base(provider: str, api_base: str | None) -> str | None:
     # Azure AI Foundry can expose Azure OpenAI APIs under paths like
     # /openai/v1/responses. LiteLLM's Azure v1 client expects the service root
     # and appends /openai/v1/ itself, so strip endpoint-specific suffixes.
-    if provider == "azure_foundry" and _is_azure_openai_foundry_endpoint(base):
+    # L-01: pass `model` so this agrees with _azure_foundry_api_version, whose
+    # bare-service-root branch depends on it. Two callers disagreeing about
+    # whether an endpoint is Foundry-OpenAI is what produced H-03.
+    if provider == "azure_foundry" and _is_azure_openai_foundry_endpoint(base, model):
         parsed = urlsplit(base)
-        return f"{parsed.scheme}://{parsed.netloc}"
+        # L-02: rebuild from hostname/port rather than netloc so any userinfo
+        # in a pasted URL (https://user:secret@host/...) is not carried forward.
+        #
+        # `parsed.port` is a property that RAISES ValueError for a non-numeric
+        # or out-of-range port ("...:99999", "...:abc"). This function runs
+        # inside _build_router and check_llm_health, so an unhandled raise here
+        # would surface as a crash before any LLM error handling. Fall back to
+        # the untouched base — a malformed endpoint should fail as a connection
+        # error from the provider, not as a ValueError from URL parsing.
+        host = parsed.hostname or ""
+        if not host:
+            return base
+        try:
+            port: int | None = parsed.port
+        except ValueError:
+            # Malformed port. Do NOT return `base` untouched — it may carry
+            # userinfo, which is exactly the credential leak this rebuild
+            # exists to prevent. Rebuild from the parsed hostname and drop the
+            # bad port; the endpoint then fails as a provider connection error
+            # rather than as a ValueError, and with no secret attached.
+            logging.warning("Invalid port in api_base; dropping it during normalization")
+            port = None
+        netloc = f"{host}:{port}" if port else host
+        return f"{parsed.scheme}://{netloc}"
 
     # OpenAI / OpenAI-compatible: preserve the URL as-is. The OpenAI client
     # resolves paths correctly whether the base includes /v1 or not.
@@ -329,6 +364,9 @@ _SECRET_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"AIza[0-9A-Za-z_\-]{10,}"),
     # Generic Bearer tokens in an Authorization header line.
     re.compile(r"(?i)(Bearer\s+)[^\s\"']+"),
+    # Azure sends its key in a bare ``api-key:`` header and the value is a plain
+    # 32-84 char alphanumeric, so it matches none of the patterns above. M-08.
+    re.compile(r"(?i)(api[-_]?key[\"'\s:=]+)[^\s\"',}]+"),
 )
 
 
@@ -480,8 +518,14 @@ def get_model_name(config: LLMConfig) -> str:
     ):
         if config.model.startswith(("azure/", "azure_ai/")):
             return config.model
-        if _is_azure_foundry_gpt5_model(config.model):
-            return f"azure/gpt5_series/{config.model}"
+        # Deliberately no `gpt5_series/` segment. That string is absent from
+        # LiteLLM's model registry, and every capability decision in this module
+        # is derived from `litellm.get_model_info`: with the prefix,
+        # get_safe_max_tokens collapses 128k -> the 4096 default and
+        # _supports_json_mode returns False, so long resumes get truncated JSON
+        # and response_format is never sent. LiteLLM already routes gpt-5 family
+        # deployments to its GPT-5 config from the bare name, so the prefix
+        # bought nothing and cost both.
         return f"azure/{config.model}"
 
     # OpenRouter is special: always add openrouter/ prefix unless already present
@@ -540,7 +584,7 @@ def _build_router(config: LLMConfig) -> Router:
     effective_key = _effective_api_key(config.provider, config.api_key)
     if effective_key:
         litellm_params["api_key"] = effective_key
-    api_base = _normalize_api_base(config.provider, config.api_base)
+    api_base = _normalize_api_base(config.provider, config.api_base, config.model)
     if api_base:
         litellm_params["api_base"] = api_base
     api_version = _azure_foundry_api_version(config)
@@ -626,7 +670,7 @@ async def check_llm_health(
             "messages": [{"role": "user", "content": prompt}],
             "max_tokens": 64,
             "api_key": _effective_api_key(config.provider, config.api_key),
-            "api_base": _normalize_api_base(config.provider, config.api_base),
+            "api_base": _normalize_api_base(config.provider, config.api_base, config.model),
             "timeout": LLM_TIMEOUT_HEALTH_CHECK,
         }
         api_version = _azure_foundry_api_version(config)
@@ -1189,6 +1233,14 @@ async def complete_json(
             # reasoning and return no visible content. Dropping to minimal
             # effort on retry leaves room for the JSON itself. Scoped to this
             # provider so other providers keep their configured effort.
+            #
+            # Note this only engages when reasoning_effort was explicitly set:
+            # the default is None (see LLMConfig and Settings), which the
+            # frontend documents as "do not send the parameter". The empty
+            # responses that motivated this were most likely caused by the
+            # `gpt5_series/` prefix falling out of LiteLLM's model registry and
+            # clamping max_tokens to 4096 — fixed above. Kept as belt-and-braces
+            # for users who do configure an effort level.
             if (
                 attempt > 0
                 and config.provider == "azure_foundry"

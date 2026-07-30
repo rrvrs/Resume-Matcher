@@ -499,6 +499,32 @@ FRONTEND_BASE_URL=http://localhost:3001
 CORS_ORIGINS=["http://localhost:3001", "http://127.0.0.1:3001"]
 ```
 
+### Chinese / Japanese / Korean text renders as boxes (□□□) in the PDF
+
+The PDF is rendered by headless Chromium, which falls back to **system** fonts
+for any glyph the bundled webfonts don't cover. A headless Linux host usually
+ships none for CJK, so the text becomes tofu boxes.
+
+**Docker users:** nothing to do — the image installs `fonts-noto-cjk`.
+
+**Running without Docker:** install system CJK fonts on the machine running the
+backend.
+
+```bash
+# Debian / Ubuntu
+sudo apt-get install -y fonts-noto-cjk
+
+# Fedora / RHEL
+sudo dnf install -y google-noto-sans-cjk-fonts
+
+# Arch
+sudo pacman -S noto-fonts-cjk
+
+# macOS — CJK fonts ship with the OS, no action needed
+```
+
+Restart the backend afterwards so Chromium picks up the new font cache.
+
 ### Ollama connection fails
 
 **Error:** `Connection refused to localhost:11434`

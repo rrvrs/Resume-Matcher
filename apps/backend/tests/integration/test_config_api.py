@@ -522,3 +522,46 @@ class TestLegacyKeyMigration:
         if config_module.CONFIG_FILE_PATH.exists():
             config_module.CONFIG_FILE_PATH.unlink()
         migrate_legacy_keys()
+
+
+class TestRequiresBaseUrlValidation:
+    """M-05: requiresBaseUrl was a UI-only guard until now."""
+
+    async def test_azure_foundry_without_base_url_is_rejected(self, client):
+        async with client:
+            resp = await client.put(
+                "/api/v1/config/llm-api-key",
+                json={"provider": "azure_foundry", "model": "gpt-5-mini", "api_base": ""},
+            )
+
+        assert resp.status_code == 422
+        detail = resp.json()["detail"]
+        # Structured, like the other validators in this router — the UI needs
+        # the field name to attach the error, not a bare sentence.
+        # Same {code, field, missing} shape as update_feature_prompts, so the
+        # UI has one schema to read across this router's validation errors.
+        assert detail["code"] == "missing_base_url"
+        assert detail["field"] == "api_base"
+        assert detail["missing"] == ["api_base"]
+
+    async def test_azure_foundry_with_base_url_is_accepted(self, client):
+        async with client:
+            resp = await client.put(
+                "/api/v1/config/llm-api-key",
+                json={
+                    "provider": "azure_foundry",
+                    "model": "gpt-5-mini",
+                    "api_base": "https://example.services.ai.azure.com/openai/v1/responses",
+                },
+            )
+
+        assert resp.status_code == 200
+
+    async def test_other_providers_are_unaffected(self, client):
+        async with client:
+            resp = await client.put(
+                "/api/v1/config/llm-api-key",
+                json={"provider": "openai", "model": "gpt-5-nano-2025-08-07"},
+            )
+
+        assert resp.status_code == 200
