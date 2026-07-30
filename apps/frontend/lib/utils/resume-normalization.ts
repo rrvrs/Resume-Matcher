@@ -98,6 +98,12 @@ const hasCustomItemContent = (item: CustomSectionItem): boolean => {
 };
 
 const normalizeCustomSection = (section: CustomSection): CustomSection => {
+  // A persisted customSections entry can be null or a primitive; reading
+  // .sectionType off it throws. Guard the section value, not only its items.
+  if (!isObjectRecord(section)) {
+    return section;
+  }
+
   if (section.sectionType === 'itemList') {
     return {
       ...section,
@@ -140,6 +146,10 @@ export const normalizeResumeForSave = (resume: ResumeData): ResumeData => {
       .filter(isObjectRecord)
       .map(normalizeDescriptionFields)
       .filter(hasProjectContent),
+    // education was the one top-level collection left unguarded, so a null or
+    // primitive entry survived normalization and reached the render path.
+    // Education.description is a scalar, so there are no styles to align here.
+    education: (Array.isArray(resume.education) ? resume.education : []).filter(isObjectRecord),
     additional: resume.additional
       ? {
           ...resume.additional,

@@ -18,8 +18,10 @@ import React from 'react';
 const fetchResume = vi.fn();
 const updateResume = vi.fn();
 
+let currentSearch = 'id=res-1';
+
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams('id=res-1'),
+  useSearchParams: () => new URLSearchParams(currentSearch),
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
 }));
 
@@ -86,6 +88,7 @@ const importBuilder = async () =>
   (await import('@/components/builder/resume-builder')).ResumeBuilder;
 
 beforeEach(() => {
+  currentSearch = 'id=res-1';
   vi.useFakeTimers();
   localStorage.clear();
   fetchResume.mockReset();
@@ -202,6 +205,14 @@ describe('resume builder autosave', () => {
     // And the failure is surfaced rather than silently swallowed.
     expect(screen.getByRole('alert')).toBeInTheDocument();
   });
+
+  // NOTE: the P0 cross-resume race (a superseded load response landing under a
+  // different resume id) is NOT covered here. Reproducing it needs an in-place
+  // navigation with two overlapping in-flight fetches, and every version I
+  // built either passed with the fix reverted or failed with it applied — i.e.
+  // it tested the harness, not the behaviour. Rather than ship a green test
+  // that proves nothing, the gap is recorded. The fix is the `cancelled` flag
+  // in the load effect, mirroring the JD effect directly below it.
 
   it('H-01: the debounce does not collapse to zero while typing over a slow link', async () => {
     fetchResume.mockResolvedValue({ processed_resume: REAL_RESUME, parent_id: null, title: 'r' });

@@ -222,7 +222,13 @@ const ResumeBuilderContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const resumeId = searchParams.get('id');
+  // Monotonic edit counter. It is deliberately never reset: two savers can be
+  // in flight (a queued manual flush behind an autosave), and resetting it to 0
+  // on whichever finishes first invalidated the other's captured baseline, so a
+  // save that actually succeeded reported failure. "Everything is synced" is
+  // now `editVersionRef === syncedVersionRef`, which no other saver can forge.
   const editVersionRef = useRef(0);
+  const syncedVersionRef = useRef(0);
   const resumeSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const unsyncedSinceRef = useRef<number | null>(null);
 
@@ -286,7 +292,7 @@ const ResumeBuilderContent = () => {
           setResumeData(data.processed_resume as ResumeData);
           setLastSavedData(data.processed_resume as ResumeData);
           setHasUnsavedChanges(false);
-          editVersionRef.current = 0;
+          syncedVersionRef.current = editVersionRef.current;
           unsyncedSinceRef.current = null;
         }
       } catch (error) {
@@ -380,7 +386,15 @@ const ResumeBuilderContent = () => {
   }, [hasUnsavedChanges]);
 
   useEffect(() => {
+    // P0: without this, navigating from resume A to resume B before A's GET
+    // resolves lets A's response land under B's id — and because the response
+    // also flips loadingState to 'loaded', autosave then writes A's content
+    // into B. Every state write below is gated on the effect still being
+    // current. (The JD effect below already did this; this one did not.)
+    let cancelled = false;
+
     const loadResumeData = async () => {
+      if (cancelled) return;
       setLoadingState('loading');
       setPendingDraftRestore(null);
 
@@ -388,6 +402,7 @@ const ResumeBuilderContent = () => {
       if (resumeId) {
         try {
           const data = await fetchResume(resumeId);
+          if (cancelled) return;
           // Track if this is a tailored resume (has parent_id)
           setIsTailoredResume(Boolean(data.parent_id));
           // Store resume title for downloads
@@ -408,7 +423,7 @@ const ResumeBuilderContent = () => {
             setResumeData(serverData);
             setLastSavedData(serverData);
             setHasUnsavedChanges(false);
-            editVersionRef.current = 0;
+            syncedVersionRef.current = editVersionRef.current;
             unsyncedSinceRef.current = null;
             setAutoSaveError(null);
             if (shouldPromptForDraftRestore(localDraft, serverData)) {
@@ -428,7 +443,7 @@ const ResumeBuilderContent = () => {
               setResumeData(serverData);
               setLastSavedData(serverData);
               setHasUnsavedChanges(false);
-              editVersionRef.current = 0;
+              syncedVersionRef.current = editVersionRef.current;
               unsyncedSinceRef.current = null;
               setAutoSaveError(null);
               if (shouldPromptForDraftRestore(localDraft, serverData)) {
@@ -443,6 +458,7 @@ const ResumeBuilderContent = () => {
             }
           }
         } catch (err) {
+          if (cancelled) return;
           // Do NOT fall through to the localStorage draft restore below. That
           // path sets hasUnsavedChanges=true, which arms autosave and would
           // PATCH a stale draft over a server copy we failed to read and
@@ -490,6 +506,10 @@ const ResumeBuilderContent = () => {
     };
 
     loadResumeData();
+
+    return () => {
+      cancelled = true;
+    };
   }, [
     improvedData?.data?.job_id,
     improvedData?.data?.resume_id,
@@ -618,7 +638,7 @@ const ResumeBuilderContent = () => {
 
         if (editVersionRef.current === versionAtSchedule) {
           setHasUnsavedChanges(false);
-          editVersionRef.current = 0;
+          syncedVersionRef.current = versionAtSchedule;
           unsyncedSinceRef.current = null;
           clearStoredResumeDraft(resumeId);
         }
@@ -666,9 +686,12 @@ const ResumeBuilderContent = () => {
         setLastSavedData((response?.processed_resume as ResumeData) ?? canonicalPayload);
         setAutoSaveError(null);
 
-        if (editVersionRef.current === versionAtFlush) {
+        // Compare against syncedVersionRef, not a zeroed counter: an autosave
+        // completing ahead of this queued save used to reset the baseline and
+        // make a successful PATCH look like a failure to the caller.
+        syncedVersionRef.current = Math.max(syncedVersionRef.current, versionAtFlush);
+        if (editVersionRef.current === syncedVersionRef.current) {
           setHasUnsavedChanges(false);
-          editVersionRef.current = 0;
           unsyncedSinceRef.current = null;
           setLastAutoSavedAt(Date.now());
           clearStoredResumeDraft(resumeId);
@@ -708,12 +731,29 @@ const ResumeBuilderContent = () => {
   };
 
   const handleReset = () => {
+    const saveInFlight = isSaving || isAutoSaving;
     setResumeData(lastSavedData);
-    setHasUnsavedChanges(false);
-    editVersionRef.current = 0;
-    unsyncedSinceRef.current = null;
+
+    // Bump the version so any save already in flight cannot claim the reset
+    // state as synced when it lands — its captured baseline is now stale.
+    editVersionRef.current += 1;
+
+    if (saveInFlight) {
+      // That in-flight PATCH is carrying the edits we just discarded, so the
+      // server is about to hold content the editor no longer shows. Stay dirty
+      // and let autosave push the reset state, converging the two. Marking this
+      // clean is what left the discarded text on the server silently.
+      setHasUnsavedChanges(true);
+      unsyncedSinceRef.current = Date.now();
+      writeStoredResumeDraft(resumeId, lastSavedData);
+    } else {
+      setHasUnsavedChanges(false);
+      syncedVersionRef.current = editVersionRef.current;
+      unsyncedSinceRef.current = null;
+      clearStoredResumeDraft(resumeId);
+    }
+
     setAutoSaveError(null);
-    clearStoredResumeDraft(resumeId);
   };
 
   const handleRestoreLocalDraft = () => {

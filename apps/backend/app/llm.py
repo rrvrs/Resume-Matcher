@@ -151,14 +151,19 @@ def _normalize_api_base(provider: str, api_base: str | None, model: str | None =
         # would surface as a crash before any LLM error handling. Fall back to
         # the untouched base — a malformed endpoint should fail as a connection
         # error from the provider, not as a ValueError from URL parsing.
-        try:
-            port = parsed.port
-        except ValueError:
-            logging.warning("Invalid port in api_base; leaving it unnormalized")
-            return base
         host = parsed.hostname or ""
         if not host:
             return base
+        try:
+            port: int | None = parsed.port
+        except ValueError:
+            # Malformed port. Do NOT return `base` untouched — it may carry
+            # userinfo, which is exactly the credential leak this rebuild
+            # exists to prevent. Rebuild from the parsed hostname and drop the
+            # bad port; the endpoint then fails as a provider connection error
+            # rather than as a ValueError, and with no secret attached.
+            logging.warning("Invalid port in api_base; dropping it during normalization")
+            port = None
         netloc = f"{host}:{port}" if port else host
         return f"{parsed.scheme}://{netloc}"
 
