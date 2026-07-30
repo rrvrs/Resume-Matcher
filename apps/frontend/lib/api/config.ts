@@ -90,8 +90,20 @@ export async function updateLlmConfig(config: LLMConfigUpdate): Promise<LLMConfi
   });
 
   if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.detail || `Failed to update LLM config (status ${res.status}).`);
+    const data = (await res.json().catch(() => ({}))) as { detail?: unknown };
+    // FastAPI returns `detail` as a string OR a structured object (this
+    // endpoint now emits {code, field, missing} for a missing Base URL).
+    // Passing an object straight to `new Error()` renders "[object Object]",
+    // so serialize explicitly — same treatment as updateFeaturePrompts.
+    let message: string;
+    if (typeof data.detail === 'string') {
+      message = data.detail;
+    } else if (data.detail) {
+      message = JSON.stringify(data.detail);
+    } else {
+      message = `Failed to update LLM config (status ${res.status}).`;
+    }
+    throw new Error(message);
   }
 
   return res.json();
@@ -144,9 +156,18 @@ export const PROVIDER_INFO: Record<
     defaultModel: string;
     requiresKey: boolean;
     requiresBaseUrl?: boolean;
-    baseUrlLabel?: string;
+    /**
+     * Base URL this provider owns. Used both to seed the field on switch-in
+     * and to decide whether to clear it on switch-out, so a previous
+     * provider's endpoint can't be persisted against the next one.
+     */
+    defaultBaseUrl?: string;
+    /**
+     * i18n key suffix under `settings.llmConfiguration.` for provider-specific
+     * base-URL copy. The example URL stays a literal in baseUrlPlaceholder.
+     */
+    baseUrlI18nKey?: string;
     baseUrlPlaceholder?: string;
-    baseUrlDescription?: string;
   }
 > = {
   openai: { name: 'OpenAI', defaultModel: 'gpt-5-nano-2025-08-07', requiresKey: true },
@@ -157,16 +178,15 @@ export const PROVIDER_INFO: Record<
     name: 'OpenAI-Compatible (Local)',
     defaultModel: 'custom-model',
     requiresKey: false,
+    defaultBaseUrl: 'http://localhost:8080/v1',
   },
   azure_foundry: {
     name: 'Azure AI Foundry',
     defaultModel: 'mistral-large-latest',
     requiresKey: true,
     requiresBaseUrl: true,
-    baseUrlLabel: 'Azure AI Foundry endpoint',
+    baseUrlI18nKey: 'azure',
     baseUrlPlaceholder: 'https://<resource>.services.ai.azure.com/openai/v1/responses',
-    baseUrlDescription:
-      'Paste the endpoint from Foundry. GPT deployments can use the service root or /openai/v1/responses; Azure AI Inference models can use the /models endpoint.',
   },
   anthropic: { name: 'Anthropic', defaultModel: 'claude-haiku-4-5-20251001', requiresKey: true },
   openrouter: {
@@ -177,7 +197,12 @@ export const PROVIDER_INFO: Record<
   gemini: { name: 'Google Gemini', defaultModel: 'gemini-3-flash-preview', requiresKey: true },
   deepseek: { name: 'DeepSeek', defaultModel: 'deepseek-chat', requiresKey: true },
   groq: { name: 'Groq', defaultModel: 'llama-3.3-70b-versatile', requiresKey: true },
-  ollama: { name: 'Ollama (Local)', defaultModel: 'gemma3:4b', requiresKey: false },
+  ollama: {
+    name: 'Ollama (Local)',
+    defaultModel: 'gemma3:4b',
+    requiresKey: false,
+    defaultBaseUrl: 'http://localhost:11434',
+  },
 };
 
 // Feature configuration types

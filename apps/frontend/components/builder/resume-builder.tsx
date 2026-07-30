@@ -59,6 +59,7 @@ import {
   getResumeDraftStorageKey,
   LEGACY_RESUME_DRAFT_STORAGE_KEY,
   parseResumeDraft,
+  safeStorage,
   shouldPromptForDraftRestore,
   type ResumeDraftEnvelope,
 } from '@/lib/utils/resume-draft-storage';
@@ -71,6 +72,10 @@ const SETTINGS_STORAGE_KEY = 'resume_builder_settings';
 const TAB_IDS: TabId[] = ['resume', 'cover-letter', 'outreach', 'interview-prep', 'jd-match'];
 const RESUME_AUTOSAVE_DEBOUNCE_MS = 2500;
 const RESUME_AUTOSAVE_MAX_WAIT_MS = 12000;
+// Floor for the computed delay. Without it, once an unsynced streak exceeds the
+// max wait the delay pins to 0 and every keystroke schedules an immediate
+// full-document PATCH.
+const RESUME_AUTOSAVE_MIN_DELAY_MS = 500;
 
 type Translate = (key: string, params?: Record<string, string | number>) => string;
 
@@ -114,7 +119,7 @@ const withStorageKey = (
 const readStoredResumeDraft = (resumeId: string | null): StoredResumeDraft | null => {
   const scopedKey = getResumeDraftStorageKey(resumeId);
   const scopedDraft = withStorageKey(
-    parseResumeDraft(localStorage.getItem(scopedKey), resumeId),
+    parseResumeDraft(safeStorage.get(scopedKey), resumeId),
     scopedKey
   );
   if (scopedDraft) {
@@ -122,7 +127,7 @@ const readStoredResumeDraft = (resumeId: string | null): StoredResumeDraft | nul
   }
 
   const legacyDraft = withStorageKey(
-    parseResumeDraft(localStorage.getItem(LEGACY_RESUME_DRAFT_STORAGE_KEY), resumeId, Date.now(), {
+    parseResumeDraft(safeStorage.get(LEGACY_RESUME_DRAFT_STORAGE_KEY), resumeId, Date.now(), {
       allowLegacyPlainData: !resumeId,
     }),
     LEGACY_RESUME_DRAFT_STORAGE_KEY
@@ -132,19 +137,21 @@ const readStoredResumeDraft = (resumeId: string | null): StoredResumeDraft | nul
 };
 
 const writeStoredResumeDraft = (resumeId: string | null, data: ResumeData): void => {
-  localStorage.setItem(
+  safeStorage.set(
     getResumeDraftStorageKey(resumeId),
     JSON.stringify(buildResumeDraft(resumeId, data))
   );
 };
 
 const clearStoredResumeDraft = (resumeId: string | null): void => {
-  localStorage.removeItem(getResumeDraftStorageKey(resumeId));
-  localStorage.removeItem(LEGACY_RESUME_DRAFT_STORAGE_KEY);
+  // Only clear this resume's own scoped key. Removing the legacy key here too
+  // would destroy a pre-upgrade draft for a *different* (new, unsaved) resume,
+  // which the read path deliberately only surfaces when there is no resumeId.
+  safeStorage.remove(getResumeDraftStorageKey(resumeId));
 };
 
 const clearResumeDraftStorageKey = (storageKey: string): void => {
-  localStorage.removeItem(storageKey);
+  safeStorage.remove(storageKey);
 };
 
 const ResumeBuilderContent = () => {
@@ -183,11 +190,11 @@ const ResumeBuilderContent = () => {
   const [pendingDraftRestore, setPendingDraftRestore] = useState<StoredResumeDraft | null>(null);
   const [showLeaveWithLocalDraftDialog, setShowLeaveWithLocalDraftDialog] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [, setLoadingState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
+  const [loadingState, setLoadingState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const [templateSettings, setTemplateSettings] = useState<TemplateSettings>(() => {
     if (typeof window === 'undefined') return DEFAULT_TEMPLATE_SETTINGS;
     try {
-      const saved = localStorage.getItem(SETTINGS_STORAGE_KEY);
+      const saved = safeStorage.get(SETTINGS_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         return {
@@ -353,7 +360,7 @@ const ResumeBuilderContent = () => {
 
   // Save template settings to localStorage when they change
   useEffect(() => {
-    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(templateSettings));
+    safeStorage.set(SETTINGS_STORAGE_KEY, JSON.stringify(templateSettings));
   }, [templateSettings]);
 
   // Warn user before leaving with unsaved changes
@@ -432,7 +439,13 @@ const ResumeBuilderContent = () => {
             }
           }
         } catch (err) {
+          // Do NOT fall through to the localStorage draft restore below. That
+          // path sets hasUnsavedChanges=true, which arms autosave and would
+          // PATCH a stale draft over a server copy we failed to read and
+          // therefore know nothing about. Surface the failure instead.
           console.error('Failed to load resume from API:', err);
+          setLoadingState('error');
+          return;
         }
       }
 
@@ -561,6 +574,10 @@ const ResumeBuilderContent = () => {
   useEffect(() => {
     if (
       !resumeId ||
+      // Never PATCH before the server copy has been read. Until then resumeData
+      // still holds i18n placeholders, and a full-document replace would
+      // overwrite the real resume with them.
+      loadingState !== 'loaded' ||
       !hasUnsavedChanges ||
       isSaving ||
       isAutoSaving ||
@@ -572,15 +589,20 @@ const ResumeBuilderContent = () => {
 
     const versionAtSchedule = editVersionRef.current;
     const editorSnapshot = resumeData;
-    const elapsedSinceFirstEdit = unsyncedSinceRef.current
+    const elapsedSinceStreakStart = unsyncedSinceRef.current
       ? Date.now() - unsyncedSinceRef.current
       : 0;
     const saveDelay = Math.max(
-      0,
-      Math.min(RESUME_AUTOSAVE_DEBOUNCE_MS, RESUME_AUTOSAVE_MAX_WAIT_MS - elapsedSinceFirstEdit)
+      RESUME_AUTOSAVE_MIN_DELAY_MS,
+      Math.min(RESUME_AUTOSAVE_DEBOUNCE_MS, RESUME_AUTOSAVE_MAX_WAIT_MS - elapsedSinceStreakStart)
     );
     const timerId = window.setTimeout(async () => {
       setIsAutoSaving(true);
+      // Restart the max-wait window on EVERY attempt, not only on attempts
+      // whose version check happens to match. Otherwise a single edit landing
+      // mid-flight leaves this marker set forever, the computed delay pins to
+      // its floor, and every subsequent keystroke schedules another PATCH.
+      unsyncedSinceRef.current = Date.now();
       try {
         const { response, canonicalPayload } = await queueResumeSave(editorSnapshot);
         // Prefer the server's copy: it may rewrite the payload (e.g. aligning
@@ -610,6 +632,7 @@ const ResumeBuilderContent = () => {
     hasUnsavedChanges,
     isAutoSaving,
     isSaving,
+    loadingState,
     queueResumeSave,
     regenerateWizard.step,
     resumeData,
@@ -621,6 +644,14 @@ const ResumeBuilderContent = () => {
     async (showErrorDialog = true): Promise<boolean> => {
       if (!resumeId || (!hasUnsavedChanges && !autoSaveError)) {
         return true;
+      }
+
+      // Same guard as the autosave effect. Gating only autosave left the
+      // manual Save button able to issue the identical destructive
+      // full-document PATCH while the initial fetch was still in flight,
+      // replacing a real resume with i18n placeholders.
+      if (loadingState !== 'loaded') {
+        return false;
       }
 
       try {
@@ -652,7 +683,16 @@ const ResumeBuilderContent = () => {
         setIsSaving(false);
       }
     },
-    [autoSaveError, hasUnsavedChanges, queueResumeSave, resumeData, resumeId, showNotification, t]
+    [
+      autoSaveError,
+      hasUnsavedChanges,
+      loadingState,
+      queueResumeSave,
+      resumeData,
+      resumeId,
+      showNotification,
+      t,
+    ]
   );
 
   const handleSave = async () => {
@@ -977,11 +1017,13 @@ const ResumeBuilderContent = () => {
     return null;
   })();
 
+  // Swiss tokens rather than raw Tailwind palette classes, matching the tone
+  // set used by StatCard in diff-preview-modal.tsx (L-09).
   const resumeSaveStatusStyles = {
-    amber: 'text-amber-600 bg-amber-50 border-amber-200',
-    blue: 'text-blue-700 bg-blue-50 border-blue-200',
-    green: 'text-green-700 bg-green-50 border-green-200',
-    red: 'text-red-700 bg-red-50 border-red-200',
+    amber: 'border-warning bg-[#FFF7ED] text-warning',
+    blue: 'border-primary bg-[#EFF6FF] text-primary',
+    green: 'border-success bg-[#F0FDF4] text-success',
+    red: 'border-destructive bg-[#FEF2F2] text-destructive',
   };
   const ResumeSaveStatusIcon = resumeSaveStatus?.tone === 'green' ? Check : AlertTriangle;
 
@@ -1039,7 +1081,11 @@ const ResumeBuilderContent = () => {
                     <RotateCcw className="w-4 h-4" />
                     {t('common.reset')}
                   </Button>
-                  <Button size="sm" onClick={handleSave} disabled={!resumeId || isSaving}>
+                  <Button
+                    size="sm"
+                    onClick={handleSave}
+                    disabled={!resumeId || isSaving || loadingState !== 'loaded'}
+                  >
                     <Save className="w-4 h-4" />
                     {isSaving
                       ? t('common.saving')
@@ -1158,12 +1204,23 @@ const ResumeBuilderContent = () => {
               </div>
 
               {/* Resume Editor */}
-              {activeTab === 'resume' && (
-                <>
-                  <FormattingControls settings={templateSettings} onChange={handleSettingsChange} />
-                  <ResumeForm resumeData={resumeData} onUpdate={handleUpdate} />
-                </>
-              )}
+              {activeTab === 'resume' &&
+                (loadingState === 'error' ? (
+                  <div
+                    role="alert"
+                    className="border border-destructive bg-[#FEF2F2] p-4 font-mono text-xs text-destructive"
+                  >
+                    {t('builder.alerts.loadFailed')}
+                  </div>
+                ) : (
+                  <>
+                    <FormattingControls
+                      settings={templateSettings}
+                      onChange={handleSettingsChange}
+                    />
+                    <ResumeForm resumeData={resumeData} onUpdate={handleUpdate} />
+                  </>
+                ))}
 
               {/* Cover Letter Editor */}
               {activeTab === 'cover-letter' &&

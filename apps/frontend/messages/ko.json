@@ -468,7 +468,8 @@
       "coverLetterGenerateFailed": "자기소개서 생성에 실패했습니다: {error}",
       "outreachGenerateFailed": "아웃리치 메시지 생성에 실패했습니다: {error}",
       "interviewPrepGenerateFailed": "면접 준비 자료 생성에 실패했습니다: {error}",
-      "autoSaveFailed": "동기화하지 못했습니다. 초안은 로컬에 안전하게 저장되어 있습니다."
+      "autoSaveFailed": "동기화하지 못했습니다. 초안은 로컬에 안전하게 저장되어 있습니다.",
+      "loadFailed": "서버에서 이 이력서를 불러오지 못했습니다. 새로고침하여 다시 시도해 주세요. 저장된 사본을 덮어쓰지 않도록 편집이 비활성화되었습니다."
     },
     "autoSave": {
       "saving": "동기화 중...",
@@ -688,6 +689,8 @@
       "baseUrlLabel": "기본 URL (선택 사항)",
       "baseUrlPlaceholder": "예: https://api.openai.com/v1",
       "baseUrlDescription": "프록시/어그리게이터 엔드포인트를 사용하려면 API 기본 URL을 재정의하세요. 제공업체 기본값을 사용하려면 비워두세요.",
+      "azureBaseUrlLabel": "Azure AI Foundry 엔드포인트",
+      "azureBaseUrlDescription": "Foundry에서 엔드포인트를 붙여넣으세요. GPT 배포는 서비스 루트 또는 /openai/v1/responses를, Azure AI Inference 모델은 /models 엔드포인트를 사용할 수 있습니다.",
       "ollamaServerUrl": "Ollama 서버 URL",
       "ollamaServerUrlPlaceholder": "http://localhost:11434",
       "reasoningEffortLabel": "추론 강도",

@@ -5,6 +5,7 @@ import {
   buildResumeDraft,
   getResumeDraftStorageKey,
   parseResumeDraft,
+  RESUME_DRAFT_MAX_AGE_MS,
   shouldPromptForDraftRestore,
 } from '@/lib/utils/resume-draft-storage';
 
@@ -46,7 +47,10 @@ describe('resume draft storage helpers', () => {
   });
 
   it('parses both the new draft envelope and the legacy plain data shape', () => {
-    const envelope = buildResumeDraft('abc-123', baseResume, 1770000000000);
+    // Timestamp must be recent: drafts past RESUME_DRAFT_MAX_AGE_MS are expired
+    // by design (see the "draft expiry" suite below). This case is about the
+    // round-trip shape, not the TTL.
+    const envelope = buildResumeDraft('abc-123', baseResume, Date.now() - 1000);
     expect(parseResumeDraft(JSON.stringify(envelope), 'abc-123')).toEqual(envelope);
 
     expect(parseResumeDraft(JSON.stringify(baseResume), 'abc-123', 1770000000100)).toEqual({
@@ -54,6 +58,15 @@ describe('resume draft storage helpers', () => {
       updatedAt: 1770000000100,
       data: baseResume,
     });
+  });
+
+  it('rejects malformed JSON without throwing', () => {
+    // T-02: every input in the "valid JSON" case below parses cleanly, so the
+    // try/catch in parseResumeDraft was never exercised — it could be deleted
+    // outright and this suite stayed green. These hit the catch.
+    expect(parseResumeDraft('{oops', 'abc-123')).toBeNull();
+    expect(parseResumeDraft('{"data": {', 'abc-123')).toBeNull();
+    expect(parseResumeDraft('undefined', 'abc-123')).toBeNull();
   });
 
   it('rejects valid JSON that does not look like resume data', () => {
@@ -93,18 +106,57 @@ describe('resume draft storage helpers', () => {
       ...baseResume,
       education: [
         {
+          id: 1,
           institution: 'MIT',
           degree: 'BS',
-          startDate: '2020',
-          endDate: '2024',
-          location: '',
-          gpa: '',
-          honors: [],
-          relevantCoursework: [],
+          years: '2020 - 2024',
         },
       ],
     });
 
     expect(shouldPromptForDraftRestore(changedDraft, baseResume)).toBe(true);
+  });
+});
+
+describe('draft expiry', () => {
+  it('rejects a draft older than the max age', () => {
+    const stale = JSON.stringify({
+      resumeId: 'abc-123',
+      updatedAt: Date.now() - (RESUME_DRAFT_MAX_AGE_MS + 60_000),
+      data: baseResume,
+    });
+
+    expect(parseResumeDraft(stale, 'abc-123')).toBeNull();
+  });
+
+  it('keeps a draft inside the max age', () => {
+    const fresh = JSON.stringify({
+      resumeId: 'abc-123',
+      updatedAt: Date.now() - (RESUME_DRAFT_MAX_AGE_MS - 60_000),
+      data: baseResume,
+    });
+
+    expect(parseResumeDraft(fresh, 'abc-123')).not.toBeNull();
+  });
+});
+
+describe('draft expiry determinism', () => {
+  it('evaluates age against a supplied `now` instead of the wall clock', () => {
+    const writtenAt = 1_770_000_000_000;
+    const draft = JSON.stringify({ resumeId: 'abc-123', updatedAt: writtenAt, data: baseResume });
+
+    // Just inside the window relative to the supplied clock.
+    expect(
+      parseResumeDraft(draft, 'abc-123', undefined, {
+        now: writtenAt + RESUME_DRAFT_MAX_AGE_MS - 1,
+      })
+    ).not.toBeNull();
+
+    // Just outside it.
+    expect(
+      parseResumeDraft(draft, 'abc-123', undefined, {
+        now: writtenAt + RESUME_DRAFT_MAX_AGE_MS + 1,
+      })
+    ).toBeNull();
   });
 });

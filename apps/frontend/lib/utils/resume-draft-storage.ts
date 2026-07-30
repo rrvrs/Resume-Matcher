@@ -4,6 +4,13 @@ export const LEGACY_RESUME_DRAFT_STORAGE_KEY = 'resume_builder_draft';
 export const RESUME_DRAFT_STORAGE_PREFIX = `${LEGACY_RESUME_DRAFT_STORAGE_KEY}:`;
 const NEW_RESUME_DRAFT_ID = 'new';
 
+/**
+ * How long a local draft stays eligible for recovery. Beyond this the user has
+ * almost certainly moved on, and offering it risks resurrecting stale content
+ * over a server copy that has since changed elsewhere.
+ */
+export const RESUME_DRAFT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
 export interface ResumeDraftEnvelope {
   resumeId: string | null;
   updatedAt: number;
@@ -12,6 +19,15 @@ export interface ResumeDraftEnvelope {
 
 interface ParseResumeDraftOptions {
   allowLegacyPlainData?: boolean;
+  /**
+   * Reference timestamp for the expiry check. Defaults to `Date.now()`.
+   *
+   * Deliberately separate from `fallbackUpdatedAt`, which means "the timestamp
+   * to stamp on a legacy plain draft that carries none" — a different concept.
+   * Overloading that one would conflate "when was this written" with "what is
+   * now", and silently change legacy-draft behaviour.
+   */
+  now?: number;
 }
 
 export function getResumeDraftStorageKey(resumeId: string | null | undefined): string {
@@ -80,6 +96,14 @@ export function parseResumeDraft(
         return null;
       }
 
+      // T-04: `updatedAt` was written and validated but never read, so a draft
+      // from a one-off tailor session survived forever and would be offered as
+      // "unsaved work" months later. Expire it instead.
+      const now = options.now ?? Date.now();
+      if (now - parsed.updatedAt > RESUME_DRAFT_MAX_AGE_MS) {
+        return null;
+      }
+
       return parsed;
     }
 
@@ -103,3 +127,49 @@ export function shouldPromptForDraftRestore(
 ): boolean {
   return Boolean(draft && !isSameResumeData(draft.data, serverData));
 }
+
+/**
+ * localStorage wrapper that never throws (H-08).
+ *
+ * `localStorage` raises `SecurityError` when storage is blocked (enterprise
+ * policy, some embedded/iframe contexts) and `QuotaExceededError` on write.
+ * Unguarded access in the builder meant a blocked-storage user got a blank
+ * editor (throw during an effect -> error boundary), a resume that never
+ * loaded (rejected promise inside the loader, no error UI), or a silently
+ * dropped keystroke.
+ */
+export const safeStorage = {
+  get(key: string): string | null {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  set(key: string, value: string): boolean {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  remove(key: string): void {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      /* storage unavailable — nothing to clean up */
+    }
+  },
+  /** True when storage is readable and writable in this context. */
+  isAvailable(): boolean {
+    try {
+      const probe = '__rm_storage_probe__';
+      localStorage.setItem(probe, '1');
+      localStorage.removeItem(probe);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+};
