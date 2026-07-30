@@ -26,7 +26,7 @@ export function getPreviewErrorMessage(
     normalized.includes('api key') ||
     normalized.includes('unauthorized') ||
     normalized.includes('authentication') ||
-    errorMessage.includes('401')
+    normalized.includes('401')
   ) {
     return t('tailor.errors.apiKeyError');
   }
@@ -34,7 +34,7 @@ export function getPreviewErrorMessage(
   if (
     normalized.includes('rate limit') ||
     normalized.includes('insufficient_quota') ||
-    errorMessage.includes('429')
+    normalized.includes('429')
   ) {
     return t('tailor.errors.rateLimit');
   }
@@ -44,7 +44,7 @@ export function getPreviewErrorMessage(
     normalized.includes('timeout') ||
     normalized.includes('signal is aborted') ||
     normalized.includes('aborterror') ||
-    errorMessage.includes('504')
+    normalized.includes('504')
   ) {
     // Report the timeout the app is actually configured with, not a literal.
     // DEFAULT_TIMEOUT_MS is driven by NEXT_PUBLIC_REQUEST_TIMEOUT_MS and is

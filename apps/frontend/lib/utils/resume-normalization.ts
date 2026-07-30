@@ -16,7 +16,12 @@ const isMeaningfulText = (value: unknown): value is string => {
 };
 
 const normalizeStringList = (items?: string[]): string[] | undefined => {
-  if (!items) return items;
+  // Only `undefined` means "field absent" — preserve it so the key stays out
+  // of the payload. Every other non-array (notably `null` from malformed
+  // persisted data) is coerced to []; the old `if (!items) return items`
+  // returned null unchanged, leaking it into a value typed `string[] |
+  // undefined` and crashing callers that assume an array.
+  if (items === undefined) return undefined;
   if (!Array.isArray(items)) return [];
   return items.filter(isMeaningfulText).map((item) => item.trim());
 };
@@ -48,34 +53,37 @@ const normalizeDescriptionFields = <T extends DescribedItem>(item: T): T => {
   };
 };
 
+// Optional chaining guards null/undefined but NOT a non-string: a numeric
+// `title` from malformed persisted data makes `.trim` undefined and throws
+// "item.title?.trim is not a function". isMeaningfulText type-checks first.
 const hasExperienceContent = (item: Experience): boolean => {
   return Boolean(
-    item.title?.trim() ||
-    item.company?.trim() ||
-    item.location?.trim() ||
-    item.years?.trim() ||
-    item.description?.length
+    isMeaningfulText(item.title) ||
+    isMeaningfulText(item.company) ||
+    isMeaningfulText(item.location) ||
+    isMeaningfulText(item.years) ||
+    (Array.isArray(item.description) && item.description.length)
   );
 };
 
 const hasProjectContent = (item: Project): boolean => {
   return Boolean(
-    item.name?.trim() ||
-    item.role?.trim() ||
-    item.years?.trim() ||
-    item.github?.trim() ||
-    item.website?.trim() ||
-    item.description?.length
+    isMeaningfulText(item.name) ||
+    isMeaningfulText(item.role) ||
+    isMeaningfulText(item.years) ||
+    isMeaningfulText(item.github) ||
+    isMeaningfulText(item.website) ||
+    (Array.isArray(item.description) && item.description.length)
   );
 };
 
 const hasCustomItemContent = (item: CustomSectionItem): boolean => {
   return Boolean(
-    item.title?.trim() ||
-    item.subtitle?.trim() ||
-    item.location?.trim() ||
-    item.years?.trim() ||
-    item.description?.length
+    isMeaningfulText(item.title) ||
+    isMeaningfulText(item.subtitle) ||
+    isMeaningfulText(item.location) ||
+    isMeaningfulText(item.years) ||
+    (Array.isArray(item.description) && item.description.length)
   );
 };
 
@@ -83,7 +91,11 @@ const normalizeCustomSection = (section: CustomSection): CustomSection => {
   if (section.sectionType === 'itemList') {
     return {
       ...section,
-      items: (section.items || []).map(normalizeDescriptionFields).filter(hasCustomItemContent),
+      // Array.isArray, not `|| []` — a malformed truthy non-array (an object
+      // from hand-edited storage) reaches .map and throws.
+      items: (Array.isArray(section.items) ? section.items : [])
+        .map(normalizeDescriptionFields)
+        .filter(hasCustomItemContent),
     };
   }
 
@@ -109,10 +121,10 @@ export const normalizeResumeForSave = (resume: ResumeData): ResumeData => {
 
   return {
     ...resume,
-    workExperience: (resume.workExperience || [])
+    workExperience: (Array.isArray(resume.workExperience) ? resume.workExperience : [])
       .map(normalizeDescriptionFields)
       .filter(hasExperienceContent),
-    personalProjects: (resume.personalProjects || [])
+    personalProjects: (Array.isArray(resume.personalProjects) ? resume.personalProjects : [])
       .map(normalizeDescriptionFields)
       .filter(hasProjectContent),
     additional: resume.additional

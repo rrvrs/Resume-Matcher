@@ -6,6 +6,8 @@ import {
   getResumeDraftStorageKey,
   parseResumeDraft,
   RESUME_DRAFT_MAX_AGE_MS,
+  RESUME_DRAFT_MAX_CLOCK_SKEW_MS,
+  isSameResumeData,
   shouldPromptForDraftRestore,
 } from '@/lib/utils/resume-draft-storage';
 
@@ -158,5 +160,62 @@ describe('draft expiry determinism', () => {
         now: writtenAt + RESUME_DRAFT_MAX_AGE_MS + 1,
       })
     ).toBeNull();
+  });
+});
+
+describe('isSameResumeData structural comparison', () => {
+  it('treats reordered object keys as equal', () => {
+    // A client-authored draft and a Pydantic-serialised server response can
+    // carry identical data in a different key order. JSON.stringify equality
+    // called that "unsaved work" and popped a recovery dialog whose two
+    // options were indistinguishable.
+    const left = { ...baseResume, personalInfo: { name: 'Ada', email: 'a@b.com' } };
+    const right = { ...baseResume, personalInfo: { email: 'a@b.com', name: 'Ada' } };
+
+    expect(isSameResumeData(left as ResumeData, right as ResumeData)).toBe(true);
+    expect(
+      shouldPromptForDraftRestore(
+        buildResumeDraft('abc-123', left as ResumeData),
+        right as ResumeData
+      )
+    ).toBe(false);
+  });
+
+  it('still reports a real difference', () => {
+    const left = { ...baseResume, summary: 'one' };
+    const right = { ...baseResume, summary: 'two' };
+
+    expect(isSameResumeData(left as ResumeData, right as ResumeData)).toBe(false);
+  });
+
+  it('keeps array order significant', () => {
+    const left = { ...baseResume, additional: { technicalSkills: ['a', 'b'] } };
+    const right = { ...baseResume, additional: { technicalSkills: ['b', 'a'] } };
+
+    expect(isSameResumeData(left as ResumeData, right as ResumeData)).toBe(false);
+  });
+});
+
+describe('draft clock skew', () => {
+  it('rejects a draft stamped far in the future', () => {
+    const now = 1_800_000_000_000;
+    const future = JSON.stringify({
+      resumeId: 'abc-123',
+      updatedAt: now + RESUME_DRAFT_MAX_CLOCK_SKEW_MS + 60_000,
+      data: baseResume,
+    });
+
+    expect(parseResumeDraft(future, 'abc-123', undefined, { now })).toBeNull();
+  });
+
+  it('tolerates small skew', () => {
+    const now = 1_800_000_000_000;
+    const slightlyAhead = JSON.stringify({
+      resumeId: 'abc-123',
+      updatedAt: now + 60_000,
+      data: baseResume,
+    });
+
+    expect(parseResumeDraft(slightlyAhead, 'abc-123', undefined, { now })).not.toBeNull();
   });
 });

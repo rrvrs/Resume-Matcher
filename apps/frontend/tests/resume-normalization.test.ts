@@ -153,3 +153,53 @@ describe('resume normalization', () => {
     expect(experience).not.toHaveProperty('descriptionStyles');
   });
 });
+
+describe('normalization robustness against malformed persisted data', () => {
+  // These inputs are not reachable from the editor, but they ARE reachable from
+  // hand-edited localStorage or a legacy server row, and each one used to throw
+  // or leak a bad value into the canonical PATCH payload.
+  const malformed = (over: Record<string, unknown>): ResumeData =>
+    ({ ...baseResume, ...over }) as unknown as ResumeData;
+
+  it('coerces a null string list to [] instead of leaking null', () => {
+    const out = normalizeResumeForSave(
+      malformed({ additional: { technicalSkills: null, languages: undefined } })
+    );
+
+    expect(out.additional?.technicalSkills).toEqual([]);
+    // `undefined` still means "absent" and is preserved.
+    expect(out.additional?.languages).toBeUndefined();
+  });
+
+  it('does not throw on non-string scalar fields', () => {
+    expect(() =>
+      normalizeResumeForSave(
+        malformed({ workExperience: [{ id: 1, title: 5, description: ['ok'] }] })
+      )
+    ).not.toThrow();
+  });
+
+  it('does not throw on a non-array description', () => {
+    expect(() =>
+      normalizeResumeForSave(
+        malformed({ personalProjects: [{ id: 1, name: 'P', description: 'not-an-array' }] })
+      )
+    ).not.toThrow();
+  });
+
+  it('does not throw on a non-array custom itemList', () => {
+    expect(() =>
+      normalizeResumeForSave(
+        malformed({
+          customSections: { custom_1: { sectionType: 'itemList', items: { bogus: true } } },
+        })
+      )
+    ).not.toThrow();
+  });
+
+  it('does not throw when top-level collections are not arrays', () => {
+    expect(() =>
+      normalizeResumeForSave(malformed({ workExperience: null, personalProjects: 'nope' }))
+    ).not.toThrow();
+  });
+});

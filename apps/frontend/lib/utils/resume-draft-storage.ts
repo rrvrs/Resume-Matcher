@@ -11,6 +11,12 @@ const NEW_RESUME_DRAFT_ID = 'new';
  */
 export const RESUME_DRAFT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
+/**
+ * Tolerated clock skew for a draft stamped in the future. Beyond this the
+ * timestamp is treated as untrustworthy rather than as "very fresh".
+ */
+export const RESUME_DRAFT_MAX_CLOCK_SKEW_MS = 24 * 60 * 60 * 1000; // 1 day
+
 export interface ResumeDraftEnvelope {
   resumeId: string | null;
   updatedAt: number;
@@ -100,7 +106,12 @@ export function parseResumeDraft(
       // from a one-off tailor session survived forever and would be offered as
       // "unsaved work" months later. Expire it instead.
       const now = options.now ?? Date.now();
-      if (now - parsed.updatedAt > RESUME_DRAFT_MAX_AGE_MS) {
+      const age = now - parsed.updatedAt;
+      // Negative age means the draft is stamped in the future — a client clock
+      // that was ahead when it was written. Left unchecked it stays recoverable
+      // until that future date plus the max age. Allow a small skew window and
+      // reject anything beyond it.
+      if (age > RESUME_DRAFT_MAX_AGE_MS || age < -RESUME_DRAFT_MAX_CLOCK_SKEW_MS) {
         return null;
       }
 
@@ -117,8 +128,47 @@ export function parseResumeDraft(
   }
 }
 
+/**
+ * Structural deep-equality, insensitive to object key order.
+ *
+ * This gates a data-loss decision (whether to offer the "Restore Local Draft?"
+ * dialog), so it must not report a difference that isn't one. `JSON.stringify`
+ * equality is key-order sensitive: a client-authored draft and a
+ * Pydantic-serialised server response can carry identical data with different
+ * key order and compare unequal, surfacing a recovery prompt whose two options
+ * are indistinguishable. Arrays stay order-sensitive — order is meaningful for
+ * description rows and their parallel styles.
+ */
+const deepEqual = (left: unknown, right: unknown): boolean => {
+  if (left === right) return true;
+  if (typeof left !== typeof right) return false;
+  if (left === null || right === null) return false;
+
+  if (Array.isArray(left) || Array.isArray(right)) {
+    if (!Array.isArray(left) || !Array.isArray(right)) return false;
+    if (left.length !== right.length) return false;
+    return left.every((item, index) => deepEqual(item, right[index]));
+  }
+
+  if (typeof left === 'object' && typeof right === 'object') {
+    const leftRecord = left as Record<string, unknown>;
+    const rightRecord = right as Record<string, unknown>;
+    const leftKeys = Object.keys(leftRecord);
+    const rightKeys = Object.keys(rightRecord);
+    if (leftKeys.length !== rightKeys.length) return false;
+    return leftKeys.every(
+      (key) =>
+        Object.prototype.hasOwnProperty.call(rightRecord, key) &&
+        deepEqual(leftRecord[key], rightRecord[key])
+    );
+  }
+
+  // NaN !== NaN, but two NaNs are not a meaningful "unsaved change".
+  return Number.isNaN(left) && Number.isNaN(right);
+};
+
 export function isSameResumeData(left: ResumeData, right: ResumeData): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
+  return deepEqual(left, right);
 }
 
 export function shouldPromptForDraftRestore(
