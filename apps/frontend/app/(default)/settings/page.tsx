@@ -62,7 +62,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/lib/context/language-context';
 import { useTranslations } from '@/lib/i18n';
-import { RESUME_DRAFT_STORAGE_PREFIX } from '@/lib/utils/resume-draft-storage';
+import { RESUME_DRAFT_STORAGE_PREFIX, safeStorage } from '@/lib/utils/resume-draft-storage';
 import type { SupportedLanguage } from '@/lib/api/config';
 import type { Locale } from '@/i18n/config';
 
@@ -617,15 +617,22 @@ export default function SettingsPage() {
     try {
       await resetDatabase();
 
-      // Clear all related localStorage keys
-      localStorage.removeItem('master_resume_id');
-      localStorage.removeItem('resume_builder_draft');
-      Object.keys(localStorage)
-        .filter((key) => key.startsWith(RESUME_DRAFT_STORAGE_PREFIX))
-        .forEach((key) => localStorage.removeItem(key));
-      localStorage.removeItem('resume_builder_settings');
-      localStorage.removeItem('resume_matcher_content_language');
-      localStorage.removeItem('resume_matcher_ui_language');
+      // Clear all related localStorage keys. Routed through safeStorage so a
+      // context where storage throws (enterprise policy, iframe) cannot abort
+      // the reset flow *after* the server-side wipe has already succeeded.
+      safeStorage.remove('master_resume_id');
+      safeStorage.remove('resume_builder_draft');
+      try {
+        Object.keys(localStorage)
+          .filter((key) => key.startsWith(RESUME_DRAFT_STORAGE_PREFIX))
+          .forEach((key) => safeStorage.remove(key));
+      } catch {
+        // Enumerating localStorage can throw for the same reasons; the scoped
+        // drafts simply stay until their TTL expires.
+      }
+      safeStorage.remove('resume_builder_settings');
+      safeStorage.remove('resume_matcher_content_language');
+      safeStorage.remove('resume_matcher_ui_language');
 
       // Refresh status to show empty counts
       await refreshStatus();

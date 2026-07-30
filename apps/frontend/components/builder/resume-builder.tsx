@@ -75,6 +75,10 @@ const RESUME_AUTOSAVE_MAX_WAIT_MS = 12000;
 // Floor for the computed delay. Without it, once an unsynced streak exceeds the
 // max wait the delay pins to 0 and every keystroke schedules an immediate
 // full-document PATCH.
+// This floor deliberately wins over the remaining max-wait budget, so a save
+// can land up to MIN_DELAY after MAX_WAIT elapses. MAX_WAIT is a target for
+// how long edits may stay unsynced, not a hard deadline — dropping the floor
+// to honour it exactly is what produced one PATCH per keystroke.
 const RESUME_AUTOSAVE_MIN_DELAY_MS = 500;
 
 type Translate = (key: string, params?: Record<string, string | number>) => string;
