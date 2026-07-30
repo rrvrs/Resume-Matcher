@@ -235,3 +235,27 @@ describe('normalization robustness — element level', () => {
     expect(out.customSections?.custom_1.items).toHaveLength(1);
   });
 });
+
+describe('normalization robustness — sections and education', () => {
+  const malformed = (over: Record<string, unknown>): ResumeData =>
+    ({ ...baseResume, ...over }) as unknown as ResumeData;
+
+  it('does not throw on a null customSections entry', () => {
+    expect(() =>
+      normalizeResumeForSave(malformed({ customSections: { broken: null, ok: undefined } }))
+    ).not.toThrow();
+  });
+
+  it('drops null and primitive education entries', () => {
+    const out = normalizeResumeForSave(
+      malformed({ education: [null, { id: 1, institution: 'MIT' }, 'nope'] })
+    );
+
+    expect(out.education).toHaveLength(1);
+    expect(out.education?.[0].institution).toBe('MIT');
+  });
+
+  it('does not throw when education is not an array', () => {
+    expect(() => normalizeResumeForSave(malformed({ education: null }))).not.toThrow();
+  });
+});

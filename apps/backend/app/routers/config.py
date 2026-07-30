@@ -48,6 +48,19 @@ from app.database import db
 # alone left the .env-driven setup path able to persist an unusable config.
 PROVIDERS_REQUIRING_BASE_URL: frozenset[str] = frozenset({"azure_foundry"})
 
+
+def _effective_api_base(stored: dict) -> str | None:
+    """Resolve the base URL the LLM layer will actually use.
+
+    ``stored.get("api_base", default)`` returns None when the key is PRESENT
+    with a null value — which is exactly what an explicit "clear the field"
+    writes. That made validation (which fell back to the env var) disagree with
+    config construction (which did not): saving with LLM_API_BASE set passed
+    the required-base-URL check and then handed api_base=None to LiteLLM.
+    Every site resolves through here so they cannot drift again.
+    """
+    return stored.get("api_base") or settings.llm_api_base or None
+
 router = APIRouter(prefix="/config", tags=["Configuration"])
 
 
@@ -108,7 +121,7 @@ async def get_llm_config_endpoint() -> LLMConfigResponse:
         provider=provider,
         model=stored.get("model", settings.llm_model),
         api_key=_mask_api_key(resolve_api_key(stored, provider)),
-        api_base=stored.get("api_base", settings.llm_api_base),
+        api_base=_effective_api_base(stored),
         reasoning_effort=reasoning_effort or None,
     )
 
@@ -160,7 +173,7 @@ async def update_llm_config(
     # endpoint. Fail at save time with a field name instead of surfacing an
     # opaque LiteLLM error on the user's first generation.
     if resolved_provider in PROVIDERS_REQUIRING_BASE_URL and not (
-        stored.get("api_base") or settings.llm_api_base
+        _effective_api_base(stored)
     ):
         # Structured detail using the same {code, field, missing} shape as
         # update_feature_prompts below, so the UI has one schema to read for
@@ -179,7 +192,7 @@ async def update_llm_config(
         provider=resolved_provider,
         model=stored.get("model", settings.llm_model),
         api_key=resolve_api_key(stored, resolved_provider),
-        api_base=stored.get("api_base", settings.llm_api_base),
+        api_base=_effective_api_base(stored),
         reasoning_effort=resolved_reasoning_effort,
     )
 
@@ -228,7 +241,7 @@ async def test_llm_connection(request: LLMConfigRequest | None = None) -> dict:
         api_base=(
             request.api_base
             if request and request.api_base is not None
-            else stored.get("api_base", settings.llm_api_base)
+            else _effective_api_base(stored)
         ),
         reasoning_effort=(
             (request.reasoning_effort or None)

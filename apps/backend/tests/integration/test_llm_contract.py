@@ -452,7 +452,22 @@ class TestAzureFoundryTransport:
             "https://example.services.ai.azure.com:abc/openai/v1",
         ):
             out = _normalize_api_base("azure_foundry", bad, "gpt-5-mini")
-            assert out == bad  # left unnormalized, but no exception
+            # Rebuilt from the parsed hostname with the bad port dropped. It
+            # must NOT return the raw input: that path preserved userinfo and
+            # reintroduced the credential leak this rebuild exists to prevent.
+            assert out == "https://example.services.ai.azure.com"
+
+    async def test_malformed_port_does_not_leak_credentials(self):
+        """The malformed-port fallback must still strip userinfo."""
+        from app.llm import _normalize_api_base
+
+        out = _normalize_api_base(
+            "azure_foundry",
+            "https://user:secret@example.services.ai.azure.com:99999/openai/v1",
+            "gpt-5-mini",
+        )
+        assert "secret" not in (out or "")
+        assert out == "https://example.services.ai.azure.com"
 
     async def test_explicit_port_is_preserved(self):
         from app.llm import _normalize_api_base
