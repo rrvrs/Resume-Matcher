@@ -392,29 +392,66 @@ class TestPreserveDescriptionStyles:
         assert out["workExperience"][0]["descriptionStyles"] == ["bullet", "plain"]
 
     def test_covers_projects_and_custom_sections(self):
+        """customSections is a dict keyed by section id, not a list.
+
+        The first version of this test built it as a list, which made the
+        assertion pass against a branch that never executed. The shape here
+        matches ResumeData.customSections: dict[str, CustomSection].
+        """
         from app.services.refiner import _preserve_description_styles
 
         original = {
             "personalProjects": [
                 {"description": ["P1"], "descriptionStyles": ["plain"]}
             ],
-            "customSections": [
-                {
+            "customSections": {
+                "custom_1": {
+                    "sectionType": "itemList",
                     "items": [
                         {"description": ["C1"], "descriptionStyles": ["plain"]}
-                    ]
+                    ],
                 }
-            ],
+            },
         }
         improved = {
             "personalProjects": [{"description": ["P1 reworded"]}],
-            "customSections": [{"items": [{"description": ["C1 reworded"]}]}],
+            "customSections": {
+                "custom_1": {
+                    "sectionType": "itemList",
+                    "items": [{"description": ["C1 reworded"]}],
+                }
+            },
         }
 
         out = _preserve_description_styles(original, improved)
 
         assert out["personalProjects"][0]["descriptionStyles"] == ["plain"]
-        assert out["customSections"][0]["items"][0]["descriptionStyles"] == ["plain"]
+        assert out["customSections"]["custom_1"]["items"][0]["descriptionStyles"] == [
+            "plain"
+        ]
+
+    def test_matches_custom_sections_by_key_not_position(self):
+        """Dict ordering is not part of the contract, so match by key."""
+        from app.services.refiner import _preserve_description_styles
+
+        original = {
+            "customSections": {
+                "alpha": {"items": [{"description": ["A"], "descriptionStyles": ["plain"]}]},
+                "beta": {"items": [{"description": ["B"], "descriptionStyles": ["bullet"]}]},
+            }
+        }
+        # Same sections, reversed insertion order.
+        improved = {
+            "customSections": {
+                "beta": {"items": [{"description": ["B reworded"]}]},
+                "alpha": {"items": [{"description": ["A reworded"]}]},
+            }
+        }
+
+        out = _preserve_description_styles(original, improved)
+
+        assert out["customSections"]["alpha"]["items"][0]["descriptionStyles"] == ["plain"]
+        assert out["customSections"]["beta"]["items"][0]["descriptionStyles"] == ["bullet"]
 
     def test_keyword_injection_prompt_carries_the_preserve_rule(self):
         """The local net is defence-in-depth; the prompt should still ask."""

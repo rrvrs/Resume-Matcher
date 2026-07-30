@@ -646,6 +646,14 @@ const ResumeBuilderContent = () => {
         return true;
       }
 
+      // Same guard as the autosave effect. Gating only autosave left the
+      // manual Save button able to issue the identical destructive
+      // full-document PATCH while the initial fetch was still in flight,
+      // replacing a real resume with i18n placeholders.
+      if (loadingState !== 'loaded') {
+        return false;
+      }
+
       try {
         setIsSaving(true);
         const versionAtFlush = editVersionRef.current;
@@ -675,7 +683,16 @@ const ResumeBuilderContent = () => {
         setIsSaving(false);
       }
     },
-    [autoSaveError, hasUnsavedChanges, queueResumeSave, resumeData, resumeId, showNotification, t]
+    [
+      autoSaveError,
+      hasUnsavedChanges,
+      loadingState,
+      queueResumeSave,
+      resumeData,
+      resumeId,
+      showNotification,
+      t,
+    ]
   );
 
   const handleSave = async () => {
@@ -1064,7 +1081,11 @@ const ResumeBuilderContent = () => {
                     <RotateCcw className="w-4 h-4" />
                     {t('common.reset')}
                   </Button>
-                  <Button size="sm" onClick={handleSave} disabled={!resumeId || isSaving}>
+                  <Button
+                    size="sm"
+                    onClick={handleSave}
+                    disabled={!resumeId || isSaving || loadingState !== 'loaded'}
+                  >
                     <Save className="w-4 h-4" />
                     {isSaving
                       ? t('common.saving')

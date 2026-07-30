@@ -139,3 +139,24 @@ describe('draft expiry', () => {
     expect(parseResumeDraft(fresh, 'abc-123')).not.toBeNull();
   });
 });
+
+describe('draft expiry determinism', () => {
+  it('evaluates age against a supplied `now` instead of the wall clock', () => {
+    const writtenAt = 1_770_000_000_000;
+    const draft = JSON.stringify({ resumeId: 'abc-123', updatedAt: writtenAt, data: baseResume });
+
+    // Just inside the window relative to the supplied clock.
+    expect(
+      parseResumeDraft(draft, 'abc-123', undefined, {
+        now: writtenAt + RESUME_DRAFT_MAX_AGE_MS - 1,
+      })
+    ).not.toBeNull();
+
+    // Just outside it.
+    expect(
+      parseResumeDraft(draft, 'abc-123', undefined, {
+        now: writtenAt + RESUME_DRAFT_MAX_AGE_MS + 1,
+      })
+    ).toBeNull();
+  });
+});

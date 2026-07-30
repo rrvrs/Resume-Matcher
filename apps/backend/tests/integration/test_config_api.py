@@ -535,7 +535,12 @@ class TestRequiresBaseUrlValidation:
             )
 
         assert resp.status_code == 422
-        assert "api_base" in resp.json()["detail"]
+        detail = resp.json()["detail"]
+        # Structured, like the other validators in this router — the UI needs
+        # the field name to attach the error, not a bare sentence.
+        assert detail["code"] == "missing_base_url"
+        assert detail["field"] == "api_base"
+        assert detail["provider"] == "azure_foundry"
 
     async def test_azure_foundry_with_base_url_is_accepted(self, client):
         async with client:

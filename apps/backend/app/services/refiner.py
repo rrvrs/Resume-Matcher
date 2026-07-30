@@ -505,17 +505,18 @@ def _preserve_description_styles(
     for field in item_fields:
         _restore(original.get(field), improved.get(field))
 
+    # customSections is `dict[str, CustomSection]` keyed by section id (see
+    # ResumeData in app/schemas/models.py) -- NOT a list. Matching by position
+    # would be wrong even if the shape allowed it, since dict ordering is not
+    # part of the contract; match by key.
     orig_sections = original.get("customSections")
     new_sections = improved.get("customSections")
-    if isinstance(orig_sections, list) and isinstance(new_sections, list):
-        for index, new_section in enumerate(new_sections):
-            if index >= len(orig_sections):
+    if isinstance(orig_sections, dict) and isinstance(new_sections, dict):
+        for key, new_section in new_sections.items():
+            orig_section = orig_sections.get(key)
+            if not isinstance(orig_section, dict) or not isinstance(new_section, dict):
                 continue
-            if not isinstance(new_section, dict) or not isinstance(
-                orig_sections[index], dict
-            ):
-                continue
-            _restore(orig_sections[index].get("items"), new_section.get("items"))
+            _restore(orig_section.get("items"), new_section.get("items"))
 
     return improved
 

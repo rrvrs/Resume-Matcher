@@ -162,9 +162,18 @@ async def update_llm_config(
     if resolved_provider in PROVIDERS_REQUIRING_BASE_URL and not (
         stored.get("api_base") or settings.llm_api_base
     ):
+        # Structured detail, matching update_feature_prompts below, so the UI
+        # can attach the error to the field instead of rendering a bare string.
         raise HTTPException(
             status_code=422,
-            detail=f"Provider '{resolved_provider}' requires a Base URL (api_base).",
+            detail={
+                "code": "missing_base_url",
+                "field": "api_base",
+                "provider": resolved_provider,
+                "message": (
+                    f"Provider '{resolved_provider}' requires a Base URL (api_base)."
+                ),
+            },
         )
     raw_re = stored.get("reasoning_effort", settings.reasoning_effort)
     resolved_reasoning_effort = raw_re if raw_re else None

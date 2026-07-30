@@ -138,6 +138,46 @@ describe('resume builder autosave', () => {
     expect(updateResume).toHaveBeenCalled();
   });
 
+  it('B-01b: the manual Save path is gated on load too, not just autosave', async () => {
+    // Gating only the autosave effect left the Save button able to issue the
+    // same destructive full-document PATCH while the fetch was in flight.
+    let resolveFetch: (v: unknown) => void = () => {};
+    fetchResume.mockReturnValue(
+      new Promise((resolve) => {
+        resolveFetch = resolve;
+      })
+    );
+
+    const ResumeBuilder = await importBuilder();
+    render(<ResumeBuilder />);
+
+    await act(async () => {
+      screen.getByTestId('edit').click();
+    });
+
+    // Drive the manual save path directly (the button is also disabled, but the
+    // guard must hold regardless of how the call arrives).
+    const saveButton = screen.getAllByRole('button').find((b) => /save/i.test(b.textContent ?? ''));
+    if (saveButton) {
+      await act(async () => {
+        saveButton.click();
+      });
+    }
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+
+    expect(updateResume).not.toHaveBeenCalled();
+    expect(saveButton).toBeDisabled();
+
+    await act(async () => {
+      resolveFetch({ processed_resume: REAL_RESUME, parent_id: null, title: 'r' });
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(saveButton).not.toBeDisabled();
+  });
+
   it('B-02: a failed load does not resurrect a stale draft and autosave it', async () => {
     // A draft from a previous session is sitting in localStorage.
     localStorage.setItem(

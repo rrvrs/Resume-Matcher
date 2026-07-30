@@ -383,16 +383,19 @@ export default function SettingsPage() {
 
   // Handle provider change
   const handleProviderChange = (newProvider: LLMProvider) => {
-    const prevInfo = PROVIDER_INFO[provider];
     const nextInfo = PROVIDER_INFO[newProvider];
     setProvider(newProvider);
     setModel(nextInfo.defaultModel);
 
-    // H-09: only the inbound direction used to be handled, so switching AWAY
-    // from a provider that owns a base URL left it in the field and handleSave
-    // persisted it — e.g. Azure -> Anthropic routed every Claude call at the
-    // Azure host with an opaque connection error.
-    if (newProvider !== provider && (prevInfo.requiresBaseUrl || prevInfo.defaultBaseUrl)) {
+    // H-09: the Base URL field is shared across providers, so an endpoint left
+    // over from the previous one used to be persisted against the next —
+    // e.g. Azure -> Anthropic routed every Claude call at the Azure host.
+    //
+    // Reset on EVERY actual switch and seed only the destination's own default.
+    // Keying off the previous provider's flags was not enough: a base URL typed
+    // manually under a provider that declares neither (openai, anthropic, ...)
+    // survived the switch and was saved as Azure's required endpoint.
+    if (newProvider !== provider) {
       setApiBase(nextInfo.defaultBaseUrl ?? '');
     } else if (nextInfo.defaultBaseUrl && !apiBase.trim()) {
       setApiBase(nextInfo.defaultBaseUrl);
